@@ -1,0 +1,18 @@
+# Installed and checked on CPython 3.10.11, Windows x86-64, CPU.
+# Runtime packages from python -m pip freeze; bootstrap pip=23.0.1, setuptools=65.5.0.
+absl-py==2.5.0
+chex==0.1.86
+equinox==0.11.4
+h5py==3.11.0
+jax==0.4.26
+jaxlib==0.4.26
+jaxtyping==0.2.28
+ml-dtypes==0.3.2
+nptyping==2.5.0
+numpy==1.26.4
+opt_einsum==3.4.0
+optax==0.2.2
+scipy==1.12.0
+toolz==1.1.0
+typeguard==2.13.3
+typing_extensions==4.16.0
