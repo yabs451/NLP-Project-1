@@ -9,10 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 
-os.environ["JAX_PLATFORMS"] = "cpu"
-sys.dont_write_bytecode = True
-from run_baseline import ROOT, UPSTREAM, baseline_arguments
-sys.path.insert(0, str(UPSTREAM))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from common import ROOT, UPSTREAM, baseline_arguments
 
 import h5py
 import jax
@@ -21,6 +19,41 @@ import numpy as np
 import main_utils
 import opto
 import samplers
+
+
+# The authors' commit, as recorded in report 01 when their repository was
+# cloned. We vendor their files rather than using a submodule, so this cannot be
+# re-derived locally and is kept here as the single stated source of that fact.
+UPSTREAM_COMMIT_FROM_REPORT_01 = "85b895c720844e795734b9391b32d2619065f9a1"
+
+
+def upstream_provenance():
+    """Describe where the authors' code came from, without pretending to know more.
+
+    `git -C upstream/icl-dynamics rev-parse HEAD` would answer with *our*
+    project's commit, because the vendored files have no repository of their
+    own. Reporting that as an upstream commit would be wrong, so instead we
+    record our own commit, whether anything under upstream/ has been modified,
+    and a content hash of the vendored tree so drift is detectable.
+    """
+    def git(*arguments):
+        return subprocess.check_output(["git", "-C", str(ROOT), *arguments], text=True).strip()
+
+    tracked = sorted(path for path in git("ls-files", "upstream").splitlines())
+    digest = hashlib.sha256()
+    for path in tracked:
+        digest.update(path.encode())
+        digest.update((ROOT / path).read_bytes())
+    return {
+        "vendored": True,
+        "note": ("the authors' files are tracked directly in this repository, not as a "
+                 "submodule, so they have no commit of their own to query"),
+        "commit_recorded_in_report_01": UPSTREAM_COMMIT_FROM_REPORT_01,
+        "our_repository_commit": git("rev-parse", "HEAD"),
+        "local_modifications_under_upstream": git("status", "--short", "--", "upstream"),
+        "tracked_files": len(tracked),
+        "content_sha256": digest.hexdigest(),
+    }
 
 
 def main():
@@ -78,13 +111,11 @@ def main():
     examples = [{"classes": c.tolist(), "exemplars": e.tolist(), "labels": y.tolist(),
                  "same_classes_new_labels": z.tolist()}
                 for c, e, y, z in zip(class_ids[:5], exemplar_ids[:5], labels[:5], relabeled[:5])]
-    git = ["git", "-c", "safe.directory=" + UPSTREAM.as_posix(), "-C", str(UPSTREAM)]
     metadata = {"python": sys.version, "executable": sys.executable,
         "platform": platform.platform(), "windows": list(platform.win32_ver()),
         "processor": platform.processor(), "logical_cpus": os.cpu_count(),
         "jax_devices": [str(d) for d in jax.devices()], "jax_enable_x64": bool(jax.config.jax_enable_x64),
-        "upstream_commit": subprocess.check_output(git + ["rev-parse", "HEAD"], text=True).strip(),
-        "upstream_status": subprocess.check_output(git + ["status", "--short"], text=True).strip(),
+        "upstream": upstream_provenance(),
         "packages": dict(sorted((d.metadata["Name"], d.version) for d in importlib.metadata.distributions())),
         "data": {"path": str(filename), "bytes": filename.stat().st_size,
                  "sha256": hashlib.sha256(filename.read_bytes()).hexdigest(), "structure": structure,

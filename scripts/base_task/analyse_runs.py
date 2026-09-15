@@ -9,12 +9,17 @@ The two progress measures follow the authors' plotting code:
 
 * Previous-token score (layer 0), from `update_prev_token_over_time` /
   `plot_prev_token_over_time` in upstream/icl-dynamics/visualize_runs.py:338-364.
-  Raw score is attention from token i to token i-1. The authors subtract a
-  chance baseline: with attention a on the previous token, the remaining 1-a is
-  spread over the i other allowed positions, so the corrected score is
-  a - (1-a)/(i+1). We report the average over all i and, separately, the
-  average over label tokens 1 and 3 (the authors' "Average for 1,3" row), which
-  is the part the induction circuit needs.
+  Raw score is the attention `a` a token gives to its predecessor. The authors
+  subtract a chance baseline, indexed by `r`, the position in the shortened
+  array built with `inds = arange(1, seq)`: r=0 is token position 1, r=1 is
+  position 2, and so on. The corrected score is `a - (1 - a) / (1 + r)`.
+  The denominator `1 + r` counts the causally visible positions OTHER than the
+  previous token. For r=1 (token 2) the visible positions are {0,1,2}, the
+  previous token is 1, so two others remain and 1+r = 2. The measure is exactly
+  zero when attention is uniform over everything the token can see.
+  We report the average over all r and, separately, over label tokens 1 and 3
+  (the authors' "Average for 1,3" row), which is what the induction circuit
+  needs.
 
 * Induction score (layer 1), from `plot_attention_over_time`
   (visualize_runs.py:513-526). At the query token, the correct label token sits
@@ -36,10 +41,9 @@ import os
 from pathlib import Path
 import sys
 
-os.environ["JAX_PLATFORMS"] = "cpu"
-sys.dont_write_bytecode = True
-from run_baseline import ROOT, UPSTREAM
-sys.path.insert(0, str(UPSTREAM))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import common
+from common import ROOT, DEV_EVALUATOR_FILE
 
 import equinox as eqx
 import h5py
@@ -49,7 +53,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-import main_utils
 import visualize_runs
 
 # 5 tokens: symbol, label, symbol, label, query symbol.
@@ -59,8 +62,7 @@ NUM_CHECKPOINTS_TO_ANALYSE = 15
 
 def load_dev_data(folder, opts):
     """Load the fixed development evaluator this run was scored on."""
-    path = ROOT / "results" / "assignment" / "eval_dev.h5"
-    with h5py.File(path, "r") as handle:
+    with h5py.File(DEV_EVALUATOR_FILE, "r") as handle:
         name = list(handle.keys())[0]
         data = {field: jnp.asarray(handle[name][field][:]) for field in ("examples", "labels")}
     # Which context pair holds the support symbol. Exemplar 0 only, so the
@@ -74,7 +76,7 @@ def load_dev_data(folder, opts):
 
 def checkpoint_iters(folder):
     """A modest, roughly log-spaced selection spanning the whole run."""
-    available = sorted(int(p.stem) for p in (folder / "checkpoints").glob("*.eqx"))
+    available = common.available_checkpoints(folder)
     targets = np.unique(np.concatenate([[0], np.geomspace(
         max(available[1], 1), available[-1], NUM_CHECKPOINTS_TO_ANALYSE - 1)]))
     chosen = sorted({available[int(np.abs(np.asarray(available) - t).argmin())] for t in targets})
@@ -82,15 +84,8 @@ def checkpoint_iters(folder):
 
 
 def load_model(folder, iteration, opts):
-    model = main_utils.get_model_from_opts(argparse.Namespace(**vars(opts)))
-    optimizer = main_utils.get_optimizer_from_opts(opts)
-    template = {"iter": -1, "model": model,
-                "opt_state": optimizer.init(eqx.filter(model, eqx.is_array)),
-                "seeds": {name: jax.random.PRNGKey(0) for name in
-                          ("eval_model_seed", "train_data_seed", "train_model_seed")}}
-    ckpt = eqx.tree_deserialise_leaves(folder / "checkpoints" / f"{iteration:011d}.eqx", template)
-    assert ckpt["iter"] == iteration
-    return ckpt
+    """Load one checkpoint. Thin wrapper so the analysis reads naturally."""
+    return common.load_checkpoint(folder, iteration, opts)
 
 
 def previous_token_scores(attention):
@@ -106,8 +101,9 @@ def previous_token_scores(attention):
     raw = attention[:, 0, :, rows, rows - 1]
     assert raw.shape == (seq - 1, batch, heads), raw.shape
     raw = raw.transpose(0, 2, 1)
-    # Chance baseline: the 1-a that does not go to the previous token is spread
-    # over the pair_index+1 other causally allowed positions.
+    # Chance baseline: the attention not given to the previous token is spread
+    # over the (1 + r) causally visible positions other than the previous token,
+    # where r is the index along axis 0. Uniform attention scores exactly zero.
     corrected = raw - (1 - raw) / (1 + np.arange(seq - 1))[:, None, None]
     return raw, corrected
 
@@ -225,7 +221,7 @@ def main():
     folder = args.run_folder.resolve()
     output = folder / "analysis"
     output.mkdir(exist_ok=True)
-    opts = argparse.Namespace(**json.loads((folder / "config.json").read_text()))
+    opts = common.load_run_options(folder)
 
     # --- learning curves from the run's own log ---
     log = {}

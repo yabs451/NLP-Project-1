@@ -304,7 +304,7 @@
   },
   "dev_evaluator": {
     "name": "fsl_dev_class",
-    "file": "results\\assignment\\eval_dev.h5",
+    "file": "results\\evaluation_data\\eval_dev.h5",
     "checks": {
       "sequences": 1000,
       "tokens_per_sequence": 3,
@@ -317,7 +317,7 @@
   },
   "final_test_evaluator": {
     "name": "fsl_final_test_class",
-    "file": "results\\assignment\\eval_final_test.h5",
+    "file": "results\\evaluation_data\\eval_final_test.h5",
     "built": false,
     "status": "RESERVED - regenerate deterministically with --build-final-test when the project is ready; no model has been scored on it"
   }

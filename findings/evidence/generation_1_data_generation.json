@@ -1,0 +1,97 @@
+{
+  "generation": 1,
+  "task": "base (label-only): the successor predicts the query label",
+  "parent_run": "results\\base_task\\generation_0_original_data_init_seed_5",
+  "parent_checkpoint": "results\\base_task\\generation_0_original_data_init_seed_5\\checkpoints\\00001000000.eqx",
+  "parent_checkpoint_sequences": 1000000,
+  "source_features": "upstream\\icl-dynamics\\omniglot_resnet18_randomized_order_s0.h5",
+  "generation_rule": "questions drawn from the original training distribution (50 training classes, exemplar 0, burstiness 1, one distractor, training label pairs); the query target is replaced by the parent's argmax over all five output labels; context labels and symbols kept",
+  "question_stream": "reuses the baseline's own training key chain from train_seed, so the questions and their order match the parent's training stream",
+  "seeds": {
+    "train_seed": 0,
+    "init_seed": 5,
+    "eval_seed": 1
+  },
+  "dataset_file": "generated_training_data.h5",
+  "dataset_bytes": 4311104,
+  "target_quality": {
+    "examples": 1000000,
+    "parent_argmax_error_rate_vs_true_answer": 1.3e-05,
+    "parent_out_of_context_label_rate": 0.0,
+    "generated_label_distribution": [
+      188438,
+      187307,
+      187256,
+      187105,
+      249894
+    ],
+    "true_label_distribution": [
+      188451,
+      187307,
+      187256,
+      187105,
+      249881
+    ],
+    "distinct_questions": 78400
+  },
+  "data_generation_seconds": 27.862511400016956,
+  "worked_examples": {
+    "typical": {
+      "dataset_index": 0,
+      "context": [
+        {
+          "symbol_class": 13,
+          "exemplar": 0,
+          "label": 2
+        },
+        {
+          "symbol_class": 44,
+          "exemplar": 0,
+          "label": 4
+        }
+      ],
+      "query_symbol_class": 13,
+      "query_exemplar": 0,
+      "true_answer": 2,
+      "parent_probabilities_over_5_labels": [
+        7.5e-05,
+        9e-06,
+        0.999805,
+        2.5e-05,
+        8.6e-05
+      ],
+      "parent_argmax_target_used_for_training": 2,
+      "target_matches_true_answer": true
+    },
+    "mislabelled": {
+      "dataset_index": 5257,
+      "context": [
+        {
+          "symbol_class": 11,
+          "exemplar": 0,
+          "label": 0
+        },
+        {
+          "symbol_class": 18,
+          "exemplar": 0,
+          "label": 4
+        }
+      ],
+      "query_symbol_class": 11,
+      "query_exemplar": 0,
+      "true_answer": 0,
+      "parent_probabilities_over_5_labels": [
+        0.221227,
+        3.7e-05,
+        0.000756,
+        5.8e-05,
+        0.777922
+      ],
+      "parent_argmax_target_used_for_training": 4,
+      "target_matches_true_answer": false
+    },
+    "mislabelled_occurrences": 13,
+    "distinct_mislabelled_questions": 1
+  },
+  "worked_examples_note": "computed from the saved dataset after the run, using the same worked_examples() the pipeline now calls inline; the dataset and the parent are deterministic, so the values are those of the run"
+}

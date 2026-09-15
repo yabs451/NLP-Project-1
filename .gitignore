@@ -5,9 +5,11 @@ __pycache__/
 .pytest_cache/
 wandb/
 
-# Generated runs stay out of version control (checkpoints are ~800 MB per run),
-# but the assignment split record is the protocol itself and must be tracked.
+# Generated runs stay out of version control: checkpoints are ~800 MB per run
+# and generated datasets are large. Everything a report or finding depends on is
+# quoted in the document itself, and small evidence is copied into findings/.
 results/*
-!results/assignment/
-results/assignment/*
-!results/assignment/class_splits.json
+!results/evaluation_data/
+results/evaluation_data/*
+# The class split record IS the evaluation protocol, so it must stay auditable.
+!results/evaluation_data/class_splits.json

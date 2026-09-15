@@ -1,27 +1,22 @@
-"""Launch only the first, unmodified induction-head paper experiment."""
+"""Train generation 0: the authors' unmodified baseline, run as a subprocess.
+
+This launches upstream/icl-dynamics/main.py with the authors' own baseline
+arguments. We change only the output location and which evaluators run; every
+scientific setting stays as published.
+"""
 import argparse
 from datetime import datetime
 import json
 import os
 from pathlib import Path
-import shlex
 import subprocess
 import sys
 from time import perf_counter
 
-ROOT = Path(__file__).resolve().parents[1]
-UPSTREAM = ROOT / "upstream" / "icl-dynamics"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from common import ROOT, UPSTREAM, DEV_EVALUATOR_FILE, baseline_arguments
 
-
-def baseline_arguments():
-    source = (UPSTREAM / "ih_paper_runs.sh").read_text()
-    line = next(line for line in source.splitlines() if line.startswith("python main.py "))
-    for name, value in {"MAIN_RUN_ITERS": "1000000", "INIT_SEED": "5",
-                        "SAVE_FOLDER": "./ih_paper_reprod/main_paper_is5_ih3_pt2"}.items():
-        line = line.replace("$" + name, value)
-    args = shlex.split(line)[2:]
-    args[args.index("--data_file") + 1] = str(UPSTREAM / "omniglot_resnet18_randomized_order_s0.h5")
-    return args
+RESULTS = ROOT / "results" / "base_task"
 
 
 def replace_list_option(args, flag, values):
@@ -41,9 +36,9 @@ def assignment_arguments(args):
     Training settings, seeds and the model are untouched, so the training
     random-number stream is identical to reproduction mode.
     """
-    evaluators = ROOT / "results" / "assignment" / "eval_dev.h5"
-    if not evaluators.exists():
-        raise SystemExit("Missing {}. Run scripts/make_assignment_evaluators.py first.".format(evaluators))
+    if not DEV_EVALUATOR_FILE.exists():
+        raise SystemExit("Missing {}. Run scripts/prepare_evaluation_data.py first."
+                         .format(DEV_EVALUATOR_FILE))
     keep = [i for i, name in enumerate(["fsl_train", "fsl_val_rl", "fsl_train_valex", "fsl_test_class"])
             if name != "fsl_test_class"]
     for flag, original in (("--pe_names", ["fsl_train", "fsl_val_rl", "fsl_train_valex", "fsl_test_class"]),
@@ -53,7 +48,7 @@ def assignment_arguments(args):
                            ("--pe_burstiness", ["1", "1", "1", "1"])):
         assert args[args.index(flag) + 1:args.index(flag) + 5] == original, "upstream evaluator list changed"
         replace_list_option(args, flag, [original[i] for i in keep])
-    return args + ["--load_eval_data", str(evaluators)]
+    return args + ["--load_eval_data", str(DEV_EVALUATOR_FILE)]
 
 
 def main():
@@ -65,14 +60,15 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--run-name", default=None)
     options = parser.parse_args()
-    name = options.run_name or datetime.now().strftime("%Y%m%d_%H%M%S_") + ("baseline_full" if options.full else "baseline_trial")
+    name = options.run_name or datetime.now().strftime("%Y%m%d_%H%M%S_") + (
+        "generation_0_full" if options.full else "generation_0_short")
     if Path(name).name != name or name in (".", ".."):
         parser.error("run-name must be a single folder name")
-    folder = ROOT / "results" / name
+    folder = RESULTS / name
     args = baseline_arguments()
     if options.protocol == "assignment":
         args = assignment_arguments(args)
-    args += ["--base_folder", str(ROOT / "results"), "--run", name]
+    args += ["--base_folder", str(RESULTS), "--run", name]
     if not options.full:
         # Keep batch size and all task/model settings; change schedules only.
         args += ["--train_iters", "3200", "--eval_every", "1600", "--ckpt_every", "3200",

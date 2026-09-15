@@ -13,15 +13,29 @@ accuracy on 100 unseen character classes rose from 20.9% to **96.7%**, so the
 model genuinely learned in-context learning that transfers to symbols it never
 saw in training.
 
-Mechanistically, the run shows the picture the paper describes. Previous-token
-heads in layer 0 and induction heads in layer 1 both emerge in a sharp
-transition between roughly 150,000 and 400,000 sequences, and the accuracy jump
-happens in that same window. The circuit is **distributed**: seven of eight
-layer-1 heads end with a clearly positive induction score, and single-head
-ablation costs only a few accuracy points. Ablation also shows that
-attention-pattern strength and causal importance are not the same thing.
+Mechanistically, the run is **qualitatively consistent with** the behaviour the
+paper describes. We did not compare against any published number, so this is not
+a reproduction of their results. Previous-token heads in layer 0 and induction
+heads in layer 1 both emerge in a sharp transition between roughly 150,000 and
+400,000 sequences, and the accuracy jump happens in that same window. The
+contribution appears **distributed**: seven of eight layer-1 heads end with a
+clearly positive induction score, and ablating the strongest one costs only a
+few accuracy points. The ablations also show that attention-pattern strength and
+causal contribution are not the same thing.
 
 The reserved final test was not built and not scored.
+
+> **Note added in stage 04.** Files and run folders were reorganised after this
+> report was written. Commands and paths below are left exactly as they were run,
+> as historical provenance. Current locations:
+> `scripts/run_baseline.py` -> `scripts/base_task/train_original.py`;
+> `scripts/analyse_baseline.py` -> `scripts/base_task/analyse_runs.py`;
+> `scripts/make_assignment_evaluators.py` -> `scripts/prepare_evaluation_data.py`;
+> `results/baseline_full_is5_assignment/` ->
+> `results/base_task/generation_0_original_data_init_seed_5/`;
+> `results/assignment/` -> `results/evaluation_data/`.
+> Stage 04 also corrected wording in this report; see
+> `reports/04_project_cleanup_and_first_successor.md`. No number changed.
 
 ## Code used
 
@@ -84,8 +98,10 @@ and no hyperparameter tuning.
 | Held-out classes scored | rows 1523–1622, scored throughout training | 100 rows drawn from the unused 50–1522 pool |
 | Final test | none reserved | 100 further disjoint rows **reserved, never scored** |
 
-Training was unaffected: stage 02 verified that reproduction and assignment
-runs produce bit-identical checkpoints.
+Training was unaffected by the evaluation change. Stage 02 checked this with one
+pair of 3,200-sequence runs, one per protocol, which produced checkpoints with
+identical hashes. That is direct evidence for those runs, plus a mechanism that
+supports the general case, rather than a proof covering every configuration.
 
 ## Completion and runtime
 
@@ -140,11 +156,16 @@ correct. It sat at that ~50% plateau until the induction circuit formed. At the
 end the two metrics coincide again (96.7%), because almost all probability mass
 now sits on in-context labels.
 
-`fsl_train_valex` is the one evaluator that degrades: its loss bottoms out near
-0.47 around 400,000 sequences and then **rises** to 0.593 while its accuracy
-stays flat at ~86%. The model becomes increasingly confident on a held-out-exemplar
-distribution it does not fully master. Worth remembering when later stages
-discuss degradation, though it is not model collapse.
+**Observation.** `fsl_train_valex` is the one evaluator whose loss degrades: it
+bottoms out near 0.47 around 400,000 sequences and then **rises** to 0.593,
+while its accuracy stays flat at ~86%.
+
+**Proposed explanation, not tested here.** Rising loss at flat accuracy is the
+signature of a model growing more confident on the examples it already gets
+wrong, which would be ordinary overfitting to the exemplar-0 training
+distribution. We did not measure the per-example probabilities that would
+confirm it, so this remains a hypothesis. It is **not** model collapse: this is
+a single ordinary training run on real data, with no generated data in it.
 
 ### Mechanistic measurements
 
@@ -152,11 +173,22 @@ Figure: `analysis/head_measures.png`. Fifteen checkpoints spanning the run were
 analysed, spaced roughly logarithmically (0; 1,024; 2,016; 3,008; 5,024; 9,024;
 14,016; 25,024; 42,016; 71,008; 120,000; 204,000; 347,008; 589,024; 1,000,000).
 
-**Previous-token score (layer 0).** Raw value is the attention a token gives to
-its immediate predecessor. Following the authors, we subtract a chance baseline:
-the 1−a of attention not on the previous token is spread over the *i* other
-causally allowed positions, so the corrected score is a − (1−a)/(i+1). Zero
-means "no more than chance". We report the average over the *label* tokens
+**Previous-token score (layer 0).** Raw value is the attention *a* that a token
+gives to its immediate predecessor. Following the authors, we subtract a chance
+baseline. Write **r** for the index into the shortened array the authors build
+with `inds = arange(1, seq)`, so r = 0 is original token position 1, r = 1 is
+position 2, and so on. The corrected score is **a − (1 − a) / (1 + r)**.
+
+The denominator `1 + r` is the number of causally visible positions *other than*
+the previous token. Worked through for r = 1: that is token position 2, which can
+attend to positions {0, 1, 2}; the previous token is position 1, leaving {0, 2},
+two other positions, and 1 + r = 2. If attention to the previous token is
+a = 0.60, the remaining 0.40 spread over those two positions gives a chance
+share of 0.20, so the corrected score is 0.60 − 0.20 = 0.40. The measure is
+exactly zero when attention is uniform over everything a token can see, which we
+checked at every position.
+
+Zero therefore means "no more than chance". We report the average over the *label* tokens
 (positions 1 and 3), the authors' "Average for 1,3" row — this is the part the
 induction circuit needs, since a label token must carry information about the
 symbol before it.
@@ -190,9 +222,16 @@ Three phases are visible:
    value is a property of initialization and RoPE, not something learned.
 2. **Plateau (~25k – ~150k).** Accuracy stuck near the 50% two-label chance
    level; induction delta still ≈ +0.017.
-3. **Circuit formation (~150k – ~400k).** The previous-token score rises first
-   and fastest, the induction score follows, and accuracy jumps 53% → 89%. After
-   400,000 sequences everything continues improving slowly.
+3. **Circuit formation (~150k – ~400k).** Both measures rise and accuracy jumps
+   53% → 89%. After 400,000 sequences everything continues improving slowly.
+
+   In our sampled checkpoints the previous-token score is already well above its
+   plateau at 204,000 sequences (+0.295) while the induction score is still small
+   (+0.081), which is *consistent with* previous-token heads leading. It does not
+   establish that ordering: consecutive analysed checkpoints are tens of thousands
+   of sequences apart, the two measures are on different scales and so cannot be
+   ranked against each other by size, and this is one seed. All 1,001 checkpoints
+   are on disk, so a denser scan could test the ordering properly.
 
 Final per-head values:
 
@@ -245,10 +284,14 @@ Three readings:
   induction pattern changes nothing (−0.1 points, loss marginally lower);
   removing the strongest costs 3.9 points and more than doubles the loss. The
   induction score therefore tracks something causally real.
-* **The circuit is redundant.** Deleting the single best induction head still
-  leaves 92.8% accuracy. With seven heads carrying positive induction scores, no
-  individual head is necessary. Claims about "the" induction head in this model
-  would be wrong.
+* **The contribution looks distributed.** Deleting the strongest induction head
+  still leaves 92.8% accuracy, and seven heads carry positive induction scores.
+  That points to redundancy, and it means calling any one head "the" induction
+  head of this model would be unsupported. It does **not** prove that no
+  individual head is necessary: we ablated four of the sixteen heads, one at a
+  time, in one model. Establishing necessity would need every head tested and
+  combinations ablated, since two heads can each be individually dispensable
+  while the pair is not.
 * **Attention pattern ≠ causal contribution.** L0H0 has the *most negative*
   previous-token score, yet ablating it costs 3.6 accuracy points — nearly as
   much as the best induction head. A head that does not implement the
@@ -295,10 +338,11 @@ The protocol record is `results/assignment/class_splits.json` (tracked);
   figures — no paper numbers were compared against.
 * **Nothing here is model collapse.** This is a single generation trained on
   original data. No recursive training has been run.
-* **Ablation is single-head and zero-ablation only.** We did not test pairs or
-  groups, so redundancy is inferred from single-head results rather than
-  measured directly. Zero-ablation moves activations off-distribution; mean
-  ablation would be a fairer control and was not run.
+* **Ablation is single-head and zero-ablation only.** Four of sixteen heads were
+  ablated, one at a time. Redundancy is therefore inferred, not measured: no
+  claim about necessity or sufficiency of any head follows from these results.
+  Zero-ablation also moves activations off-distribution; mean ablation would be
+  a fairer control and was not run.
 * **Fifteen checkpoints**, so the transition's onset is located to within tens
   of thousands of sequences, not precisely. All 1,001 checkpoints are on disk if
   a finer scan is wanted.

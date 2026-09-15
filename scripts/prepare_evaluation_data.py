@@ -7,8 +7,8 @@ throughout training, so those rows cannot serve as an untouched final test. The
 our assignment splits from it.
 
 Outputs:
-  results/assignment/class_splits.json  exact class IDs, rules and seeds
-  results/assignment/eval_dev.h5        1,000 fixed dev sequences ('fsl_dev_class')
+  results/evaluation_data/class_splits.json  exact class IDs, rules and seeds
+  results/evaluation_data/eval_dev.h5        1,000 fixed dev sequences ('fsl_dev_class')
 
 The final-test classes are recorded but no sequences are generated for them, so
 no model can be scored on them by accident. `--build-final-test` regenerates
@@ -21,17 +21,14 @@ import os
 from pathlib import Path
 import sys
 
-os.environ["JAX_PLATFORMS"] = "cpu"
-sys.dont_write_bytecode = True
-from run_baseline import ROOT, UPSTREAM, baseline_arguments
-sys.path.insert(0, str(UPSTREAM))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from common import ROOT, EVALUATION_DATA, baseline_options
 
 import h5py
 import jax
 import jax.numpy as jnp
 import numpy as np
 import main_utils
-import opto
 import samplers
 
 # Seed for our class draw only. Distinct from the authors' init (5), train (0),
@@ -41,17 +38,6 @@ DEV_CLASSES = 100
 FINAL_TEST_CLASSES = 100
 DEV_EVALUATOR_NAME = "fsl_dev_class"
 FINAL_TEST_EVALUATOR_NAME = "fsl_final_test_class"
-
-
-def load_baseline_opts():
-    """Parse the authors' baseline command so we inherit their exact settings."""
-    parser = main_utils.create_parser()
-    opto.add_args_to_parser(parser)
-    opts = parser.parse_args(baseline_arguments())
-    opts.train_microbs = opts.train_bs
-    opts.model_output_classes = opts.fs_relabel
-    main_utils.check_opts(opts)
-    return opts
 
 
 def select_classes(opts, num_rows):
@@ -131,9 +117,9 @@ def main():
                         help="Also write the reserved final-test sequences (do not use for model selection)")
     args = parser.parse_args()
 
-    output = ROOT / "results" / "assignment"
+    output = EVALUATION_DATA
     output.mkdir(parents=True, exist_ok=True)
-    opts = load_baseline_opts()
+    opts = baseline_options()
     with h5py.File(opts.data_file, "r") as handle:
         features = jnp.asarray(handle[opts.data_path_in_file][:])
     selection = select_classes(opts, features.shape[0])

@@ -18,9 +18,9 @@ A `--protocol assignment` option now selects a development evaluator built from
 100 previously unused character classes, and stops the authors' repeatedly
 inspected test-class evaluator from running. A second, disjoint 100-class final
 test is specified and recorded but deliberately has no data generated and no
-metric computed. Switching protocols was verified to leave training
-**bit-identical**: the saved checkpoints of a reproduction run and an assignment
-run hash the same.
+metric computed. In the case we checked, switching protocols left
+training unchanged: a 3,200-sequence reproduction run and a 3,200-sequence
+assignment run produced checkpoints with identical SHA-256 hashes.
 
 No upstream source file was modified. The protocol is implemented entirely
 through options the authors already provide.
@@ -257,8 +257,14 @@ Two 3,200-sequence (100-update) runs, one per protocol:
 | Final checkpoint SHA-256 | identical (`2bcf5bcf2e6cf90f…`) |
 | Report 01 metrics reproduced | Yes — all four evaluators matched to the quoted decimals |
 
-Bit-identical checkpoints are strong evidence that the evaluation change does
-not touch initialization, sampling or the training random-number stream.
+Identical checkpoint hashes show that, **for this pair of 3,200-sequence runs**,
+the evaluation change did not touch initialization, sampling or the training
+random-number stream. The mechanism supports the general case: `main.py` splits
+the training seeds (:347) before it reads any evaluator option (:356-400), so the
+evaluator set cannot enter the training stream. But one pair of short runs is
+evidence about those runs, not a proof covering every configuration. Stage 04
+re-checked the same property independently at full scale: generation 1's initial
+checkpoint is byte-identical to generation 0's.
 
 Data checks on the generated development evaluator, all passing: shape
 (1000, 3, 512) examples and (1000, 3) labels; exactly one support per sequence;
@@ -318,3 +324,8 @@ preserved by the repository.
 
 Run the full single-generation baseline under `--protocol assignment` and
 analyse its learning curves and induction-circuit measures. That is report 03.
+
+> **Note added in stage 04.** Paths and script names in this report are
+> historical and were deliberately left unchanged. Current locations are listed
+> in `reports/04_project_cleanup_and_first_successor.md`, which also records the
+> wording corrected above. No numerical result in this report changed.

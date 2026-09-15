@@ -1,0 +1,244 @@
+{
+  "run": "results\\base_task\\generation_1_generated_data_init_seed_5",
+  "dev_evaluator": "fsl_dev_class",
+  "checkpoints_available": 1001,
+  "final_checkpoint_iter": 1000000,
+  "final_checkpoint_matches_configured_iters": true,
+  "optimizer_updates": 31250,
+  "checkpoints_analysed": [
+    0,
+    1024,
+    2016,
+    3008,
+    5024,
+    9024,
+    14016,
+    25024,
+    42016,
+    71008,
+    120000,
+    204000,
+    347008,
+    589024,
+    1000000
+  ],
+  "candidate_heads": {
+    "induction_layer1_head": 3,
+    "comparison_layer1_head": 6,
+    "previous_token_layer0_head": 2,
+    "comparison_layer0_head": 0,
+    "selected_by": "largest/smallest observed measure at the final checkpoint, not hardcoded"
+  },
+  "final_measures": {
+    "dev_acc": 0.9670000672340393,
+    "dev_in_context_acc": 0.9670000672340393,
+    "dev_loss": 0.083279088139534,
+    "induction_delta_per_head_layer1": [
+      0.3121720552444458,
+      0.5709924697875977,
+      0.5482860207557678,
+      0.6855604648590088,
+      0.2823289632797241,
+      0.39748960733413696,
+      0.08402812480926514,
+      0.43920499086380005
+    ],
+    "induction_correct_attention_per_head_layer1": [
+      0.5197831392288208,
+      0.7285425662994385,
+      0.7164795398712158,
+      0.8058939576148987,
+      0.4574657678604126,
+      0.5843659043312073,
+      0.2533586919307709,
+      0.6244902014732361
+    ],
+    "prev_token_label_positions_per_head_layer0": [
+      -0.4479183319524157,
+      0.704948589784404,
+      0.8786469303319847,
+      -0.37005612436138674,
+      0.050544738423079175,
+      0.7591844818517566,
+      -0.34708624488423845,
+      -0.03375467422589041
+    ],
+    "prev_token_all_positions_per_head_layer0": [
+      -0.08062251222069616,
+      0.41968613641084307,
+      0.49095104376537085,
+      -0.19210270532042079,
+      -0.062076722854690194,
+      0.4819543337379575,
+      -0.10809647651310642,
+      -0.07887334838437766
+    ]
+  },
+  "trajectory": [
+    {
+      "iter": 0,
+      "dev_acc": 0.20900000631809235,
+      "dev_in_context_acc": 0.503000020980835,
+      "dev_loss": 2.0037596225738525,
+      "max_induction_delta_layer1": 0.005140309687703848,
+      "max_prev_token_label_layer0": 0.2197743043241404
+    },
+    {
+      "iter": 1024,
+      "dev_acc": 0.21800000965595245,
+      "dev_in_context_acc": 0.5040000081062317,
+      "dev_loss": 1.880026936531067,
+      "max_induction_delta_layer1": 0.006249637808650732,
+      "max_prev_token_label_layer0": 0.2163073196013773
+    },
+    {
+      "iter": 2016,
+      "dev_acc": 0.21900001168251038,
+      "dev_in_context_acc": 0.5040000081062317,
+      "dev_loss": 1.7764829397201538,
+      "max_induction_delta_layer1": 0.006808294914662838,
+      "max_prev_token_label_layer0": 0.2110960297385852
+    },
+    {
+      "iter": 3008,
+      "dev_acc": 0.24400001764297485,
+      "dev_in_context_acc": 0.5070000290870667,
+      "dev_loss": 1.6904900074005127,
+      "max_induction_delta_layer1": 0.007216400001198053,
+      "max_prev_token_label_layer0": 0.20792774615809317
+    },
+    {
+      "iter": 5024,
+      "dev_acc": 0.30800002813339233,
+      "dev_in_context_acc": 0.5090000033378601,
+      "dev_loss": 1.5431064367294312,
+      "max_induction_delta_layer1": 0.007978522218763828,
+      "max_prev_token_label_layer0": 0.20111754833161868
+    },
+    {
+      "iter": 9024,
+      "dev_acc": 0.4230000078678131,
+      "dev_in_context_acc": 0.5130000114440918,
+      "dev_loss": 1.3792359828948975,
+      "max_induction_delta_layer1": 0.007307947613298893,
+      "max_prev_token_label_layer0": 0.17518042125304545
+    },
+    {
+      "iter": 14016,
+      "dev_acc": 0.49500003457069397,
+      "dev_in_context_acc": 0.5040000081062317,
+      "dev_loss": 1.1830060482025146,
+      "max_induction_delta_layer1": 0.005062326788902283,
+      "max_prev_token_label_layer0": 0.14416323602696257
+    },
+    {
+      "iter": 25024,
+      "dev_acc": 0.5,
+      "dev_in_context_acc": 0.5,
+      "dev_loss": 0.9160653352737427,
+      "max_induction_delta_layer1": 0.01082301139831543,
+      "max_prev_token_label_layer0": 0.07616767475071057
+    },
+    {
+      "iter": 42016,
+      "dev_acc": 0.5120000243186951,
+      "dev_in_context_acc": 0.5120000243186951,
+      "dev_loss": 0.809963047504425,
+      "max_induction_delta_layer1": 0.01425948366522789,
+      "max_prev_token_label_layer0": 0.046814419669952936
+    },
+    {
+      "iter": 71008,
+      "dev_acc": 0.5100000500679016,
+      "dev_in_context_acc": 0.5100000500679016,
+      "dev_loss": 0.7668044567108154,
+      "max_induction_delta_layer1": 0.015114855021238327,
+      "max_prev_token_label_layer0": 0.03386934939345032
+    },
+    {
+      "iter": 120000,
+      "dev_acc": 0.5320000052452087,
+      "dev_in_context_acc": 0.5320000052452087,
+      "dev_loss": 0.7431668639183044,
+      "max_induction_delta_layer1": 0.016707561910152435,
+      "max_prev_token_label_layer0": 0.05206211253216809
+    },
+    {
+      "iter": 204000,
+      "dev_acc": 0.6310000419616699,
+      "dev_in_context_acc": 0.6310000419616699,
+      "dev_loss": 0.6756501793861389,
+      "max_induction_delta_layer1": 0.080509252846241,
+      "max_prev_token_label_layer0": 0.2949114703076581
+    },
+    {
+      "iter": 347008,
+      "dev_acc": 0.893000066280365,
+      "dev_in_context_acc": 0.893000066280365,
+      "dev_loss": 0.2744537591934204,
+      "max_induction_delta_layer1": 0.42850834131240845,
+      "max_prev_token_label_layer0": 0.7838043730507293
+    },
+    {
+      "iter": 589024,
+      "dev_acc": 0.9470000267028809,
+      "dev_in_context_acc": 0.9470000267028809,
+      "dev_loss": 0.13234125077724457,
+      "max_induction_delta_layer1": 0.5970708727836609,
+      "max_prev_token_label_layer0": 0.8660637876043711
+    },
+    {
+      "iter": 1000000,
+      "dev_acc": 0.9670000672340393,
+      "dev_in_context_acc": 0.9670000672340393,
+      "dev_loss": 0.083279088139534,
+      "max_induction_delta_layer1": 0.6855604648590088,
+      "max_prev_token_label_layer0": 0.8786469303319847
+    }
+  ],
+  "ablations": {
+    "intact": {
+      "heads": null,
+      "acc": 0.9670000672340393,
+      "in_context_acc": 0.9670000672340393,
+      "loss": 0.083279088139534
+    },
+    "candidate_induction_head_ablated": {
+      "heads": [
+        "1:3"
+      ],
+      "acc": 0.9280000329017639,
+      "in_context_acc": 0.9310000538825989,
+      "loss": 0.18620914220809937
+    },
+    "comparison_layer1_head_ablated": {
+      "heads": [
+        "1:6"
+      ],
+      "acc": 0.9670000672340393,
+      "in_context_acc": 0.9670000672340393,
+      "loss": 0.08200515806674957
+    },
+    "candidate_previous_token_head_ablated": {
+      "heads": [
+        "0:2"
+      ],
+      "acc": 0.8880000710487366,
+      "in_context_acc": 0.8880000710487366,
+      "loss": 0.2991800904273987
+    },
+    "comparison_layer0_head_ablated": {
+      "heads": [
+        "0:0"
+      ],
+      "acc": 0.9310000538825989,
+      "in_context_acc": 0.9360000491142273,
+      "loss": 0.2121271938085556
+    }
+  },
+  "ablation_meaning": "opto.py sets the listed heads' value vectors to zero, so they contribute nothing to the residual stream; all other heads and all weights are unchanged.",
+  "chance_levels": {
+    "acc": 0.2,
+    "in_context_acc": 0.5
+  }
+}
