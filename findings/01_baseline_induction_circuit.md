@@ -42,9 +42,9 @@ three training-class diagnostics are kept alongside.
 Chance is 20% over five labels, or 50% once predictions are restricted to the
 two labels present in context. Final development loss 0.0828 nats.
 
-![learning curves](evidence/generation_0_curves.png)
+![learning curves](../results/base_task/generation_0_original_data_init_seed_5/analysis/curves.png)
 
-Learning has three phases (`evidence/generation_0_head_measures.png`):
+Learning has three phases (`results/base_task/generation_0_original_data_init_seed_5/analysis/head_measures.png`):
 
 1. **0 – ~25k sequences.** Accuracy climbs 21% → 50% while both circuit measures
    stay flat. The model learns to put its mass on the two labels present in
@@ -59,7 +59,7 @@ layer-0 heads become strong previous-token heads (L0H2 +0.878, L0H5 +0.759,
 L0H1 +0.705).
 
 The induction pattern is directly visible in the attention maps
-(`evidence/generation_0_attention_example.png`): at the final checkpoint the
+(`results/base_task/generation_0_original_data_init_seed_5/analysis/attention_example.png`): at the final checkpoint the
 query token attends to the label that follows the matching support symbol.
 
 Ablating one head at a time at the final checkpoint (zeroing its value vectors,
@@ -116,11 +116,15 @@ From the project root, with the environment set up (see README):
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/prepare_evaluation_data.py
-.\.venv\Scripts\python.exe scripts/base_task/train_original.py --full --protocol assignment --run-name generation_0_original_data_init_seed_5
+.\.venv\Scripts\python.exe scripts/base_task/train_original.py --run-name generation_0_original_data_init_seed_5
 .\.venv\Scripts\python.exe scripts/base_task/analyse_runs.py results/base_task/generation_0_original_data_init_seed_5
 ```
 
-Training takes about 5.6 minutes on CPU and writes ~795 MB of checkpoints.
+This run was trained at the authors' learning rate of 1e-5, before the
+learning-rate search in finding 03. It was originally saved with 1,001
+checkpoints; it now keeps the 64 that the figures and the checkpoint policy
+need, and the analysis above regenerates from them unchanged.
 Seeds: initialisation 5, training 0, evaluation 1, label-pair split 20, our
-class split 7. Full numbers: `evidence/generation_0_analysis.json`. Operational
-detail: `reports/03_full_baseline_training_and_analysis.md`.
+class split 7. Full numbers: `results/base_task/generation_0_original_data_init_seed_5/analysis/analysis.json`.
+Operational detail: `Development/reports/03_full_baseline_training_and_analysis.md`
+(local only, not tracked).

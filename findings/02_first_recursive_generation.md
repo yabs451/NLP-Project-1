@@ -63,11 +63,11 @@ parent puts 0.221 on label 0 but **0.778 on label 4** — the distractor's label
 so **4** is stored as the training target. The parent is confidently wrong, and
 it copies the wrong context item's label.
 
-### Generation 1 matches generation 0 on everything we measured
+### Generation 1 is very close to generation 0, but not identical to it
 
 | Measure | Generation 0 | Generation 1 |
 | --- | ---: | ---: |
-| Dev accuracy (100 unseen classes) | 96.70% | **96.70%** |
+| Dev accuracy (100 unseen classes, 1,000 questions) | 96.70% | **96.70%** |
 | Dev context-restricted accuracy | 96.70% | 96.70% |
 | Dev loss (vs **true** answers) | 0.0828 | 0.0833 |
 | `fsl_train` accuracy | 100.0% | 100.0% |
@@ -78,10 +78,21 @@ Note the two losses are against different things: generation 1's **training**
 loss is measured against the parent's generated targets, while its
 **development** loss is against true answers, exactly as for generation 0.
 
-![generation 1 learning curves](evidence/generation_1_curves.png)
+**The two models are close, not identical.** Both answered exactly 967 of the
+same 1,000 development questions correctly, but development loss differs by
+0.000493 nats, the per-head induction scores by up to 0.0015, two of the five
+ablation conditions by 0.1 accuracy point, and the final weights by a measurable
+amount (parameter change from initialisation 3.7535 against 3.7543). Those
+differences are real, not rounding. What can be said is that they are far too
+small for this evaluator to resolve: at 1,000 questions the standard error on an
+accuracy near 97% is about 0.54 points, so equal accuracy here means "closer
+than we can measure", not "the same model". Stage 05 added a 10,000-question
+development set for exactly this reason.
 
-The learning curves are superimposable, including the ~50% plateau and the
-transition at 150k–400k sequences.
+![generation 1 learning curves](../results/base_task/generation_1_generated_data_init_seed_5/analysis/curves.png)
+
+The learning curves are visually superimposable, including the ~50% plateau and
+the transition at 150k–400k sequences.
 
 ### The induction circuit is unchanged
 
@@ -99,7 +110,7 @@ is what makes the comparison below meaningful.
 | L1H6 | +0.0846 | +0.0840 | L0H0 | −0.4487 | −0.4479 |
 
 Largest difference across all sixteen heads: 0.0015 for induction, 0.0010 for
-previous-token.
+previous-token. Small, but measurable and consistent in sign.
 
 Ablations at the final checkpoint (each head's value vectors zeroed):
 
@@ -118,7 +129,9 @@ and that is the expected result rather than a surprise.** The parent scores 100%
 on the training distribution, so its answers reproduce the true task for
 99.9987% of examples. Generation 1 was therefore trained on almost exactly the
 task generation 0 was trained on, and it learned almost exactly the same
-solution — same accuracy, same curves, same heads, same ablation profile.
+solution: the same accuracy to within this evaluator's resolution, visually
+identical curves, the same heads selected, and an ablation profile differing by
+at most 0.1 accuracy point.
 
 The measurable effect of recursion here is one corrupted question out of 78,400.
 That single question is the entire difference between the two training sets.
@@ -162,12 +175,15 @@ From the project root:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/base_task/run_recursive.py --parent results/base_task/generation_0_original_data_init_seed_5 --generations 1
-.\.venv\Scripts\python.exe scripts/verify_run.py results/base_task/generation_1_generated_data_init_seed_5
 .\.venv\Scripts\python.exe scripts/base_task/analyse_runs.py results/base_task/generation_1_generated_data_init_seed_5
 ```
 
-Data generation 28 s, training 7.7 min, verification 10 s, analysis 11 s;
-4.3 MB dataset plus 810 MB of checkpoints. Seeds: initialisation 5, training 0, evaluation 1.
-Full numbers: `evidence/generation_1_analysis.json` and
-`evidence/generation_1_data_generation.json`. Operational detail:
-`reports/04_project_cleanup_and_first_successor.md`.
+The generated dataset is 4.3 MB. This successor was trained from a parent
+trained at the authors' learning rate of 1e-5, before the learning-rate search
+in finding 03, so it is a pilot rather than part of the tuned lineage. It was
+originally saved with 1,001 checkpoints and now keeps the 64 the figures and
+the checkpoint policy need; the analysis above regenerates from them unchanged. Seeds: initialisation 5, training 0, evaluation 1.
+Full numbers: `results/base_task/generation_1_generated_data_init_seed_5/analysis/analysis.json` and
+`results/base_task/generation_1_generated_data_init_seed_5/generation_metadata.json`. Operational detail:
+`Development/reports/04_project_cleanup_and_first_successor.md` (local only,
+not tracked).

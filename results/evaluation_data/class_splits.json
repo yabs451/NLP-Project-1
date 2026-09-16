@@ -17,6 +17,7 @@
   "seeds": {
     "class_split": 7,
     "dev_evaluator_data": 1007,
+    "large_dev_evaluator_data": 3007,
     "final_test_evaluator_data": 2007,
     "authors_untouched": {
       "init_seed": 5,
@@ -305,8 +306,26 @@
   "dev_evaluator": {
     "name": "fsl_dev_class",
     "file": "results\\evaluation_data\\eval_dev.h5",
+    "sequences": 1000,
+    "purpose": "loaded into training; scored at every evaluation point",
     "checks": {
       "sequences": 1000,
+      "tokens_per_sequence": 3,
+      "single_support_per_sequence": true,
+      "support_label_matches_target": true,
+      "context_labels_distinct": true,
+      "label_pairs_from_training_split": true,
+      "symbols_from_selected_classes_only": true
+    }
+  },
+  "large_dev_evaluator": {
+    "name": "fsl_dev_class_large",
+    "file": "results\\evaluation_data\\eval_dev_large.h5",
+    "sequences": 10000,
+    "purpose": "never loaded into training; scores final checkpoints only, for comparing candidate models",
+    "same_classes_as_dev_evaluator": true,
+    "checks": {
+      "sequences": 10000,
       "tokens_per_sequence": 3,
       "single_support_per_sequence": true,
       "support_label_matches_target": true,

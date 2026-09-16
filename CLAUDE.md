@@ -4,63 +4,118 @@ Honours NLP research project on the interpretability of model collapse, built on
 Singh et al. (2024) and their vendored implementation in `upstream/icl-dynamics/`.
 These conventions apply to every agent and every person working here.
 
-## The student must be able to explain every file
+## Minimal, student-readable code comes first
 
-This is assessed coursework. Code that works but cannot be explained in a
-supervision is not finished work.
+This is assessed coursework. The student must be able to understand and explain
+every maintained script and every scientific output. Code that works but cannot
+be explained in a supervision is not finished work.
 
-- Use descriptive names. `generation_0_original_data_init_seed_5` over `is5_a`.
-  Explain any abbreviation that survives.
-- Prefer ordinary functions and straight-line control flow. No classes unless
-  the data genuinely has state and behaviour together.
-- Comment the *why*, especially scientific choices: why this seed, why this
-  split, why argmax rather than sampling. Comment inside `main()` too, so the
-  order of operations reads as an explanation.
-- Document unfamiliar inputs and outputs briefly: array shapes, dtypes, units.
-  `[batch, 3, 512]` and "loss in nats" save a reader ten minutes.
+**Before adding or keeping anything, answer this:** *what current, explicitly
+requested experiment, result, figure, interpretation or reproduction step
+requires this?* If there is no answer, do not add it and do not keep it.
 
-## Keep the codebase small
+Never justify a file, option or output by future usefulness, generic
+robustness, convenience, or making an agent's job easier.
 
-- No generic experiment frameworks, plugin registries, configuration class
-  hierarchies, or abstractions added for imagined future needs.
-- Reuse what exists. Shared helpers live in `scripts/common.py`; put a new
-  helper there rather than duplicating it in two scripts.
-- Create a new file only for a clear, continuing responsibility. One reusable
-  pipeline, not one script per experiment variant.
-- When a script becomes obsolete, check what depends on it and delete it.
-  Do not keep an archive of unused scripts.
-- Removing redundant code is not the same as deleting results. Never delete
-  experimental evidence or historical reports.
+- Descriptive names for files, folders, functions and variables.
+- Straightforward functions with meaningful jobs — a sensible middle ground
+  between one enormous function and a swarm of tiny helpers.
+- Concise comments guiding the reader through important steps, including inside
+  `main()`. Comment the *why*, especially scientific choices.
+- Brief function docstrings where inputs, outputs, shapes or unfamiliar
+  operations need explaining. `[batch, 3, 512]` and "loss in nats" save a reader
+  ten minutes.
+- **No long docstrings or methodology essays at the top of a Python file.** A
+  short summary and a pointer to the relevant Markdown.
+- No unnecessary classes, wrappers, registries, frameworks or speculative
+  abstractions.
+- Reuse and adapt existing scripts. Never write a separate implementation per
+  experiment variant, and never duplicate an evaluation workflow.
+
+A file may have been essential earlier and become obsolete after a change of
+direction. Remove retired scripts, options and outputs rather than accumulating
+old versions — but check what depends on something before removing it, and
+preserve evidence the research still uses. If a purpose is unclear, find the
+specific dependency instead of deleting blindly or inventing a reason to keep it.
+
+## Folder responsibilities
+
+- `scripts/` — maintained experiment and analysis code.
+- `results/` — numerical outputs, necessary settings, saved models, comparison
+  tables and generated figures.
+- `findings/` — written scientific interpretation, referencing the real files
+  under `results/`.
+- `Development/` — local, Git-ignored operational and debugging material:
+  `Development/reports/` for operational reports and handovers,
+  `Development/outputs/` for temporary debugging output.
+- `upstream/icl-dynamics/` — the authors' code, vendored unmodified.
+
+**Do not copy measurements or figures into `findings/`.** A finding references
+the file under `results/` where the measurement actually lives. One copy only.
+
+`findings/` tracking status is the user's decision and has not been made. Do not
+change it, and never let code under `scripts/` depend on `findings/`.
+
+`Development/` is not a dumping ground. Development-only output is off by
+default, the main experiment must never depend on it, and reproduction must
+never require a temporary check. Keep material there only while there is a
+current need for it.
 
 ## Leave upstream alone
 
-`upstream/icl-dynamics/` is the authors' code, vendored unmodified. Reuse their
-model, sampler, optimizer, loss, update, evaluation and checkpoint functions
-rather than reimplementing them. If something cannot be done through their
-options, write a small adapter in our scripts and document exactly why. Any
-unavoidable patch must be called out explicitly in a report.
+Reuse the authors' model, sampler, optimizer, loss, update, evaluation and
+checkpoint functions rather than reimplementing them. If something cannot be
+done through their options, write a small adapter in our scripts and document
+why. Any unavoidable patch must be called out explicitly in a report. Leave
+their attribution unchanged.
 
-## Keep the checks that protect the experiment
+## Checks that protect the experiment
 
-Worth checking, every time they are relevant: split separation, that the query
-target never reaches the model input, valid label values, checkpoints that load,
-finite losses and gradients, and the expected optimizer update count.
+Keep only these safeguards: no data leakage (the query target must never reach
+the model input), no invalid inputs or training (finite losses, the expected
+update count, the requested configuration actually reaching the run), and no
+accidental overwriting or silent reuse (refuse to write into an existing run
+folder; refuse to reuse a run whose configuration does not match).
 
-Not worth it: broad test suites, and checks that merely restate the
-implementation. Verification should be proportional to the risk.
+Do not build a test suite, an audit framework or a cleanup utility. Temporary
+debugging checks belong in `Development/` and are never reproduction steps.
+
+## Outputs we do and do not keep
+
+Keep, because an analysis or finding reads them: `config.json` (what settings
+ran), `log.h5` (the numbers behind the learning curves), `checkpoints/`, the
+evaluation split record, tuning results and selection records, generated
+datasets, and generated figures.
+
+Do not produce: runtime/timing files or an automatic runtime column, console
+transcripts as saved artefacts, standalone verification reports, setup
+inspection dumps, or metadata that duplicates `config.json`.
+
+## Checkpoint policy
+
+Main mechanistic runs save 55 checkpoints directly during training:
+initialisation, four early snapshots near 1,000 / 2,000 / 5,000 / 10,000
+sequences, then every 20,000 sequences through 1,000,000. Requests land on the
+next batch boundary, so the early ones are saved at 1,024 / 2,016 / 5,024 /
+10,016; record the actual counts.
+
+Do not save a dense schedule and prune afterwards. Tuning runs keep only the
+final checkpoint plus any snapshot with an identified current analysis use.
+Reducing snapshots must never reduce the accuracy and loss curves in `log.h5`,
+which are logged separately. Adapt analysis to the checkpoints that exist; never
+fabricate a missing measurement or imply sparse snapshots preserve every state.
 
 ## Scientific writing standards
 
 - Separate observations from proposed explanations. Say which is which.
-- Distinguish attention-pattern evidence from the effect of an intervention.
-  A head that shows a pattern has not been shown to cause a behaviour.
-- State what was actually checked, not what it suggests in general. A result
-  from one pair of short runs is evidence about those runs.
+- Distinguish attention-pattern evidence from the effect of an intervention. A
+  head showing a pattern has not been shown to cause a behaviour.
+- State what was actually checked, not what it suggests in general.
 - Do not claim reproduction of the paper without the comparisons that would
   establish it. Do not describe ordinary training behaviour as model collapse.
 - Report negative and null results honestly. Never change an experiment's
   settings to obtain a more interesting outcome.
-- Correct earlier reports openly, and say whether any number changed.
+- Correct earlier documents openly, and say whether any number changed.
 
 ## Generations
 
@@ -71,31 +126,39 @@ Always make clear which of the two a number refers to.
 
 ## Two kinds of document
 
-- `reports/` — operational handovers: files inspected, what changed and why,
-  commands, checks, results, unresolved issues, and Git status. Numbered by
-  stage, written for the supervisor and the next agent.
-- `findings/` — the scientific record, written for teammates and the eventual
-  write-up: the question, the setup, results with figures, interpretation and
-  limitations, plus the source run and reproduction command. Chronological.
-
-Each stage report states the upstream files and functions used, the project
-files created or modified, the commands run, the results with verification, and
-the version-control status of everything produced — including which evidence is
-generated and therefore not preserved by the repository.
+- `Development/reports/` — operational handovers: what changed and why,
+  commands, checks, results, unresolved issues, Git status. Numbered by stage.
+- `findings/` — the scientific record: the question, the setup, results with
+  figures, interpretation and limitations, plus the source run and reproduction
+  command. Chronological.
 
 ## Version control
 
-- Track: code, split records, reports, findings and small findings evidence.
-- Ignore: environments, caches, checkpoints and bulky generated datasets.
-- A fresh clone will not have run outputs. Any number a report or finding
-  depends on must be quoted in that document, not only stored in `results/`.
-- Do not commit, push, reset, or change remotes unless asked. Never assume
+- Track: code, the class split record, and `README.md` / `CLAUDE.md`.
+- Ignore: environments, caches, `Development/`, and `results/` apart from the
+  class split record.
+- A fresh clone has no run outputs. Any number a finding relies on must be
+  quoted in that finding, not only stored under `results/`.
+- Do not commit, push, reset or change remotes unless asked. Never assume
   ignored files are backed up anywhere.
+
+## Agent output and monitoring limits
+
+These exist because an earlier session exhausted its context on avoidable output.
+
+- **Do not print entire large logs, JSON files, datasets or directory listings
+  into the conversation.** Print only what the current task needs. This limits
+  unnecessary *output*, not understanding: read whatever code is needed to
+  modify it correctly.
+- **Do not poll running jobs.** Check once when starting and once when
+  finished. More checks only if the user asks or something actually goes wrong.
+- Use a completion notification where one is available. Otherwise let the job
+  run and return control instead of repeatedly checking it.
+- Diagnose a failure from its actual error message, not by launching broad
+  speculative checks.
+- Do not create monitoring files, background watchers or extra test scripts.
 
 ## Keep the README usable
 
-The README must let someone reproduce the project from a clean machine: setup,
-evaluation-data preparation, training generation 0, running successors,
-analysis, and where to read the findings. Use exact working commands and say
-which directory they run from. Update it in the same change that moves a path
-or renames a script.
+The README must let someone reproduce the project from a clean machine. Update
+it in the same change that moves a path, renames a script or alters a command.

@@ -18,7 +18,11 @@ ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM = ROOT / "upstream" / "icl-dynamics"
 FEATURE_FILE = UPSTREAM / "omniglot_resnet18_randomized_order_s0.h5"
 EVALUATION_DATA = ROOT / "results" / "evaluation_data"
+# Two development evaluators, both on the same 100 held-out classes:
+# the small one is loaded into training and scored at every evaluation point;
+# the large one is never loaded into training and scores final checkpoints only.
 DEV_EVALUATOR_FILE = EVALUATION_DATA / "eval_dev.h5"
+LARGE_DEV_EVALUATOR_FILE = EVALUATION_DATA / "eval_dev_large.h5"
 
 # JAX has no native-Windows GPU build, and we want runs to be comparable
 # regardless of what hardware happens to be present.
@@ -172,6 +176,38 @@ def build_evaluators(opts, features):
             assign_query_label_random=smart_index(opts.pe_assign_query_label_random, index, 0))
         evaluators[name] = sampler(seeds[index], features)
     return evaluators
+
+
+def load_evaluator_file(path):
+    """Read one saved evaluator file into {name: {'examples', 'labels'}}."""
+    import h5py
+    import jax.numpy as jnp
+    with h5py.File(path, "r") as handle:
+        return {name: {field: jnp.asarray(handle[name][field][:])
+                       for field in ("examples", "labels")}
+                for name in handle}
+
+
+def score_checkpoint(run_folder, iteration, evaluator_file, opts=None):
+    """Score one checkpoint on a saved evaluator, using the authors' evaluate().
+
+    Returns {evaluator_name: {metric: mean}}. Accuracy is argmax over all five
+    labels; loss is mean query cross-entropy in nats. Dropout is zero in this
+    model, so the evaluation key does not change the result.
+    """
+    import jax
+    import numpy as np
+    import main as upstream_main
+    import opto
+    opts = opts or load_run_options(run_folder)
+    checkpoint = load_checkpoint(run_folder, iteration, opts)
+    forward = opto.make_fn_from_opts(opts)
+    assert forward is opto.default_model_fwd_fn, "run unexpectedly used an intervention"
+    evaluators = load_evaluator_file(evaluator_file)
+    scored = upstream_main.evaluate(checkpoint["model"], forward, jax.random.PRNGKey(0),
+                                    evaluators, opts.eval_bs)
+    return {name: {metric: float(np.mean(values)) for metric, values in metrics.items()}
+            for name, metrics in scored.items()}
 
 
 def evaluation_seeds(opts):

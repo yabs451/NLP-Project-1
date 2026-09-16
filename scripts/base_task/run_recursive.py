@@ -26,7 +26,6 @@ from functools import partial
 import json
 from pathlib import Path
 import sys
-from time import perf_counter
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import common  # sets JAX_PLATFORMS and puts the authors' code on sys.path
@@ -298,7 +297,6 @@ def train_successor(opts, folder, features, dataset, evaluators, log_path):
 
     pending = {metric: [] for metric in upstream_main.ALL_TRAIN_METRICS + ["iter"]}
     eval_index = ckpt_index = 0
-    started = perf_counter()
     for sequences in range(0, opts.train_iters, opts.train_bs):
         if eval_index < len(opts.eval_sched) and sequences >= opts.eval_sched[eval_index]:
             eval_model_seed, pending = run_evaluation(model, eval_model_seed, sequences, pending)
@@ -321,7 +319,7 @@ def train_successor(opts, folder, features, dataset, evaluators, log_path):
 
     eval_model_seed, pending = run_evaluation(model, eval_model_seed, opts.train_iters, pending)
     save_checkpoint(model, opt_state, opts.train_iters, eval_model_seed, train_model_seed)
-    return perf_counter() - started, int(opt_state[0].count)
+    return int(opt_state[0].count)
 
 
 def run_one_generation(parent_folder, opts, features, splits, evaluators):
@@ -337,10 +335,8 @@ def run_one_generation(parent_folder, opts, features, splits, evaluators):
     print("parent:", parent_folder, "checkpoint", parent_iters, flush=True)
 
     dataset_path = folder / "generated_training_data.h5"
-    started = perf_counter()
     statistics, predict, dataset = generate_dataset(
         opts, parent["model"], features, splits, dataset_path)
-    generation_seconds = perf_counter() - started
     class_idxs, exemplar_idxs, labels, true_query_label = dataset
 
     examples = worked_examples(predict, features, class_idxs, exemplar_idxs,
@@ -360,13 +356,9 @@ def run_one_generation(parent_folder, opts, features, splits, evaluators):
                             "argmax over all five output labels; context labels and symbols kept"),
         "question_stream": ("reuses the baseline's own training key chain from train_seed, so the "
                             "questions and their order match the parent's training stream"),
-        "seeds": {"train_seed": int(opts.train_seed), "init_seed": int(opts.init_seed),
-                  "eval_seed": int(opts.eval_seed)},
         "dataset_file": dataset_path.name,
-        "dataset_bytes": dataset_path.stat().st_size,
         "target_quality": statistics,
         "worked_examples": examples,
-        "data_generation_seconds": generation_seconds,
     }
     (folder / "generation_metadata.json").write_text(json.dumps(metadata, indent=2))
     print(json.dumps({"target_quality": statistics, "worked_examples": examples}, indent=2), flush=True)
@@ -381,16 +373,8 @@ def run_one_generation(parent_folder, opts, features, splits, evaluators):
     config["load_eval_data"] = [str(common.DEV_EVALUATOR_FILE)]
     (folder / "config.json").write_text(json.dumps(config, indent=2, default=str))
 
-    training_seconds, updates = train_successor(
-        opts, folder, features, dataset, evaluators, folder / "log.h5")
-    timing = {"data_generation_seconds": generation_seconds,
-              "training_seconds": training_seconds,
-              "optimizer_updates": updates,
-              "dataset_bytes": dataset_path.stat().st_size,
-              "checkpoint_bytes": sum(p.stat().st_size for p in
-                                      (folder / "checkpoints").glob("*.eqx"))}
-    (folder / "timing.json").write_text(json.dumps(timing, indent=2))
-    print(json.dumps(timing, indent=2), flush=True)
+    updates = train_successor(opts, folder, features, dataset, evaluators, folder / "log.h5")
+    assert updates == opts.train_iters // opts.train_bs, "unexpected optimizer update count"
     return folder
 
 
