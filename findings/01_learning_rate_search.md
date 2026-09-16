@@ -103,8 +103,10 @@ rather than divergence: losses stayed finite and were still falling at the end,
 and final accuracy was near 50%. Its behaviour was also measured directly — at
 seed 5, restricting predictions to the two labels present in the context left
 accuracy unchanged (0.530 either way), and 96.6% of probability mass sat on
-those two labels. So it had learned to answer within the context without
-reliably picking the right one of the two. Whether it would reach higher
+those two labels. That is a strong preference for the context labels, not
+exclusive prediction of them: a few percent of mass still went elsewhere. It had
+learned to answer largely within the context without reliably picking the right
+one of the two. Whether it would reach higher
 accuracy with a longer budget was not tested.
 
 **The winner is at the edge of the tested range.** The correct description is
