@@ -4,6 +4,14 @@ Generation 1 | 15 September 2026 | source run:
 `results/base_task/generation_1_generated_data_init_seed_5`
 Parent: generation 0 (`..._generation_0_original_data_init_seed_5`)
 
+> **Retired, 16 September 2026.** This successor descended from a parent trained
+> at 1e-5, the rate the learning-rate search (finding 03) later rejected. The
+> lineage was retired: its checkpoints, `log.h5` and generated dataset were
+> deleted, and the analysis outputs and generation metadata cited below were
+> kept. The numbers and figures here remain valid but can no longer be
+> regenerated without retraining. The recursive pipeline itself is unchanged and
+> is what the six-successor experiment will use.
+
 ## Question
 
 If we train a fresh model on the *parent's own answers* instead of the true

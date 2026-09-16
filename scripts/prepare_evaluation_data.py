@@ -9,17 +9,6 @@ our assignment splits from it.
 Outputs:
   results/evaluation_data/class_splits.json  exact class IDs, rules and seeds
   results/evaluation_data/eval_dev.h5        1,000 fixed dev sequences ('fsl_dev_class')
-  results/evaluation_data/eval_dev_large.h5  10,000 fixed dev sequences ('fsl_dev_class_large')
-
-There are two development evaluators, both drawn from the same 100 development
-classes under the same task rules, differing only in size and seed:
-
-  * the 1,000-question set is loaded into training and scored at every
-    evaluation point, so it has to be cheap;
-  * the 10,000-question set is never loaded into training. It scores *final*
-    checkpoints only, where the smaller sampling error matters because we are
-    comparing candidate models whose accuracies may differ by well under a
-    percentage point.
 
 The final-test classes are recorded but no sequences are generated for them, so
 no model can be scored on them by accident. `--build-final-test` regenerates
@@ -48,12 +37,7 @@ ASSIGNMENT_CLASS_SPLIT_SEED = 7
 DEV_CLASSES = 100
 FINAL_TEST_CLASSES = 100
 DEV_EVALUATOR_NAME = "fsl_dev_class"
-LARGE_DEV_EVALUATOR_NAME = "fsl_dev_class_large"
 FINAL_TEST_EVALUATOR_NAME = "fsl_final_test_class"
-# The monitoring set matches the authors' eval_iters (1,000). The comparison set
-# is ten times larger: at 10,000 questions the standard error on an accuracy
-# near 97% is about 0.17 points, against about 0.54 at 1,000.
-LARGE_DEV_SEQUENCES = 10000
 
 
 def select_classes(opts, num_rows):
@@ -142,11 +126,10 @@ def main():
     splits = selection["splits"]
     train_pairs = splits["relabeling"]["train"]
 
-    # A separate evaluation seed per evaluator, all distinct from the authors'
-    # eval seed (1) so none of these draws can collide with their streams.
+    # A separate evaluation seed per evaluator, both distinct from the authors'
+    # eval seed (1) so neither draw can collide with their streams.
     dev_seed = 1000 + ASSIGNMENT_CLASS_SPLIT_SEED
     final_test_seed = 2000 + ASSIGNMENT_CLASS_SPLIT_SEED
-    large_dev_seed = 3000 + ASSIGNMENT_CLASS_SPLIT_SEED
 
     dev = build_evaluator(opts, splits, selection["dev"], features, dev_seed, opts.eval_iters)
     dev_checks = check_evaluator(dev, np.asarray(features), selection["dev"], opts,
@@ -155,19 +138,6 @@ def main():
     with h5py.File(dev_path, "w") as handle:
         for field in ("examples", "labels"):
             handle.create_dataset("/".join([DEV_EVALUATOR_NAME, field]), data=np.asarray(dev[field]))
-
-    # The larger comparison set: same development classes, same task rules, its
-    # own fixed seed. Written to its own file so that training runs, which load
-    # only eval_dev.h5, can never accidentally score it at every checkpoint.
-    large_dev = build_evaluator(opts, splits, selection["dev"], features,
-                                large_dev_seed, LARGE_DEV_SEQUENCES)
-    large_dev_checks = check_evaluator(large_dev, np.asarray(features), selection["dev"], opts,
-                                       train_pairs, LARGE_DEV_SEQUENCES)
-    large_dev_path = output / "eval_dev_large.h5"
-    with h5py.File(large_dev_path, "w") as handle:
-        for field in ("examples", "labels"):
-            handle.create_dataset("/".join([LARGE_DEV_EVALUATOR_NAME, field]),
-                                  data=np.asarray(large_dev[field]))
 
     final_test_path = output / "eval_final_test.h5"
     if args.build_final_test:
@@ -191,7 +161,6 @@ def main():
                            "validation, next 100 are final test; both stored sorted"),
         "seeds": {"class_split": ASSIGNMENT_CLASS_SPLIT_SEED,
                   "dev_evaluator_data": dev_seed,
-                  "large_dev_evaluator_data": large_dev_seed,
                   "final_test_evaluator_data": final_test_seed,
                   "authors_untouched": {"init_seed": opts.init_seed, "train_seed": opts.train_seed,
                                         "eval_seed": opts.eval_seed,
@@ -213,15 +182,9 @@ def main():
                           "output_classes": int(opts.fs_relabel)},
         "dev_evaluator": {"name": DEV_EVALUATOR_NAME, "file": str(dev_path.relative_to(ROOT)),
                           "sequences": int(opts.eval_iters),
-                          "purpose": "loaded into training; scored at every evaluation point",
+                          "purpose": ("loaded into training for monitoring, and used to "
+                                      "compare final models"),
                           "checks": dev_checks},
-        "large_dev_evaluator": {"name": LARGE_DEV_EVALUATOR_NAME,
-                                "file": str(large_dev_path.relative_to(ROOT)),
-                                "sequences": LARGE_DEV_SEQUENCES,
-                                "purpose": ("never loaded into training; scores final checkpoints "
-                                            "only, for comparing candidate models"),
-                                "same_classes_as_dev_evaluator": True,
-                                "checks": large_dev_checks},
         "final_test_evaluator": {
             "name": FINAL_TEST_EVALUATOR_NAME,
             "file": str(final_test_path.relative_to(ROOT)),

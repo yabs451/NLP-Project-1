@@ -1,8 +1,4 @@
-"""Score a finished run's checkpoint on the 10,000-question development set.
-
-This is the larger of our two development evaluators. It is never loaded into
-training, so a model has not seen it at any point during its own run, and it is
-the set used to compare candidate models against each other.
+"""Score a finished run's checkpoint on the fixed 1,000-question development set.
 
 Accuracy is argmax over all five labels (chance 20%); `in_context_acc` restricts
 the argmax to the two labels present in the context (chance 50%); loss is mean
@@ -27,12 +23,10 @@ def main():
     parser.add_argument("run_folder", type=Path)
     parser.add_argument("--checkpoint", type=int, default=None,
                         help="Sequence count of the checkpoint to score (default: the last one)")
-    parser.add_argument("--small", action="store_true",
-                        help="Use the 1,000-question monitoring set instead")
     args = parser.parse_args()
 
     folder = args.run_folder.resolve()
-    evaluator = common.DEV_EVALUATOR_FILE if args.small else common.LARGE_DEV_EVALUATOR_FILE
+    evaluator = common.DEV_EVALUATOR_FILE
     if not evaluator.exists():
         raise SystemExit("Missing {}. Run scripts/prepare_evaluation_data.py first."
                          .format(evaluator))

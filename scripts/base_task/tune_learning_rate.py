@@ -1,15 +1,14 @@
-"""Learning-rate search for the base (label-only) task, and its evaluator comparison.
+"""Learning-rate search for the base (label-only) task.
 
-Trains a 5 x 3 grid (five learning rates, three initialisation seeds) on the
-original task, then scores each final checkpoint. `--compare-evaluators` re-scores
-the same saved models on the smaller development set and writes the comparison.
+Trains a 6 x 3 grid (six learning rates, three initialisation seeds) on the
+original task and scores each final checkpoint on the fixed 1,000-question
+development set.
 
 Method and results: findings/03_learning_rate_search.md
 
 Usage (from the project root):
   .venv/Scripts/python.exe scripts/base_task/tune_learning_rate.py
   .venv/Scripts/python.exe scripts/base_task/tune_learning_rate.py --dry-run
-  .venv/Scripts/python.exe scripts/base_task/tune_learning_rate.py --compare-evaluators
 """
 import argparse
 import json
@@ -22,7 +21,9 @@ import common
 
 import numpy as np
 
-LEARNING_RATES = [0.000001, 0.000003, 0.00001, 0.00003, 0.0001]
+# 1e-3 was added after the first five rates put the winner at the top of the
+# range. The search stops here: no further rate is tested.
+LEARNING_RATES = [0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.001]
 INIT_SEEDS = [5, 6, 7]
 PUBLISHED_LEARNING_RATE = 0.00001
 # Seed 5 is the authors' initialisation seed, fixed in advance as the one whose
@@ -32,7 +33,6 @@ GENERATION_0_SEED = 5
 TUNING = common.ROOT / "results" / "base_task" / "tuning"
 RESULTS_FILE = TUNING / "results.json"
 SELECTION_FILE = TUNING / "selection.json"
-COMPARISON_FILE = TUNING / "evaluator_comparison.json"
 FIGURE_FILE = TUNING / "learning_rate_comparison.png"
 TRAINER = Path(__file__).resolve().parent / "train_original.py"
 
@@ -159,38 +159,33 @@ def select_learning_rate(summary):
     return tied[0]
 
 
-def plot_comparison(summaries, winners, path):
-    """Final accuracy against learning rate, one line per evaluator.
+def plot_summary(summary, winner, path):
+    """Final accuracy against learning rate, from the 1,000-question evaluator.
 
-    `summaries` maps an evaluator label to its per-rate summary rows. Individual
-    seeds are drawn as points so their spread can be compared with the gap
-    between learning rates.
+    Individual seeds are drawn as points so their spread can be compared with
+    the gap between learning rates.
     """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    colours = {"10,000 questions": "tab:blue", "1,000 questions": "tab:orange"}
     figure, axis = plt.subplots(figsize=(7.5, 4.8))
-    for label, summary in summaries.items():
-        colour = colours.get(label, "tab:green")
-        for row in summary:
-            for accuracy in row["per_seed_accuracy"].values():
-                axis.scatter(row["learning_rate"], accuracy, s=22, color=colour,
-                             alpha=0.55, zorder=3)
-        rates = [row["learning_rate"] for row in summary if row["mean_accuracy"] is not None]
-        means = [row["mean_accuracy"] for row in summary if row["mean_accuracy"] is not None]
-        axis.plot(rates, means, color=colour, marker="o", markersize=5,
-                  label="{}, mean of seeds 5/6/7".format(label), zorder=2)
-    for label, winner in winners.items():
-        if winner is not None:
-            axis.axvline(winner["learning_rate"], color=colours.get(label, "tab:green"),
-                         ls="--", alpha=0.5)
+    for row in summary:
+        for accuracy in row["per_seed_accuracy"].values():
+            axis.scatter(row["learning_rate"], accuracy, s=24, color="tab:blue",
+                         alpha=0.55, zorder=3)
+    rates = [row["learning_rate"] for row in summary if row["mean_accuracy"] is not None]
+    means = [row["mean_accuracy"] for row in summary if row["mean_accuracy"] is not None]
+    axis.plot(rates, means, color="tab:blue", marker="o", markersize=5,
+              label="mean of seeds 5, 6, 7", zorder=2)
+    if winner is not None:
+        axis.axvline(winner["learning_rate"], color="tab:red", ls="--", alpha=0.6,
+                     label="selected: {:g}".format(winner["learning_rate"]))
     axis.axhline(0.2, color="grey", ls=":", lw=1, label="chance over 5 labels (20%)")
     axis.axhline(0.5, color="grey", ls="--", lw=1, label="chance within context (50%)")
     axis.set_xscale("log")
     axis.set_xlabel("constant Adam learning rate (log scale)")
-    axis.set_ylabel("final development accuracy")
+    axis.set_ylabel("final accuracy on 1,000 development questions")
     axis.set_title("Learning-rate search: final accuracy after 31,250 updates")
     axis.set_ylim(0, 1.05)
     axis.legend(fontsize=8, loc="lower right")
@@ -215,7 +210,7 @@ def save_records(records, reference):
     RESULTS_FILE.write_bytes(json.dumps({
         "grid": {"learning_rates": LEARNING_RATES, "init_seeds": INIT_SEEDS},
         "training": "original task, true query targets, 1,000,000 sequences, 31,250 updates",
-        "scored_on": str(common.LARGE_DEV_EVALUATOR_FILE.relative_to(common.ROOT)),
+        "scored_on": str(common.DEV_EVALUATOR_FILE.relative_to(common.ROOT)),
         "fixed_settings": {name: reference.get(name) for name in SHARED_SETTINGS},
         "candidates": ordered,
     }, indent=2).encode("utf-8"))
@@ -271,7 +266,7 @@ def run_grid(dry_run):
                 save_records(records, reference)
                 continue
             scored = score_final_checkpoint(common.ROOT / record["run"], expected_iterations,
-                                            common.LARGE_DEV_EVALUATOR_FILE)
+                                            common.DEV_EVALUATOR_FILE)
             record["dev_accuracy"] = scored["accuracy"]
             record["dev_loss"] = scored["loss"]
             records[(learning_rate, init_seed)] = record
@@ -289,7 +284,7 @@ def write_selection(records, summary, winner):
         "selection_rule": ("highest mean final accuracy over init seeds 5, 6 and 7, compared "
                            "unrounded; ties broken by lowest mean loss, then by preferring "
                            "1e-05, then the smaller rate"),
-        "scored_on": str(common.LARGE_DEV_EVALUATOR_FILE.relative_to(common.ROOT)),
+        "scored_on": str(common.DEV_EVALUATOR_FILE.relative_to(common.ROOT)),
         "selected_learning_rate": winner["learning_rate"],
         "claim": "best among the tested learning rates under this training budget",
         "winner_at_grid_boundary": winner["learning_rate"] in (min(LEARNING_RATES),
@@ -303,89 +298,19 @@ def write_selection(records, summary, winner):
     }, indent=2).encode("utf-8"))
 
 
-def compare_evaluators():
-    """Re-score all 15 saved models on the smaller evaluator and compare.
-
-    The 1,000-question scores are computed here by loading each saved final
-    checkpoint; they are never read out of a training log or an earlier
-    evaluation record. The 10,000-question scores are read back from the grid
-    record and are not recomputed.
-    """
-    reference = vars(common.baseline_options())
-    expected_iterations = reference["train_iters"]
-    records = load_records()
-    if len(records) != len(LEARNING_RATES) * len(INIT_SEEDS):
-        raise SystemExit("Expected 15 grid records, found {}.".format(len(records)))
-
-    fresh, recorded, candidates = {}, {}, []
-    for learning_rate in LEARNING_RATES:
-        for init_seed in INIT_SEEDS:
-            record = records[(learning_rate, init_seed)]
-            if record["status"] != "completed":
-                raise SystemExit("Candidate {} did not complete.".format(
-                    candidate_name(learning_rate, init_seed)))
-            scored = score_final_checkpoint(common.ROOT / record["run"], expected_iterations,
-                                            common.DEV_EVALUATOR_FILE)
-            fresh[(learning_rate, init_seed)] = scored
-            recorded[(learning_rate, init_seed)] = {"accuracy": record["dev_accuracy"],
-                                                    "loss": record["dev_loss"]}
-            candidates.append({
-                "candidate": candidate_name(learning_rate, init_seed),
-                "learning_rate": learning_rate,
-                "init_seed": init_seed,
-                "run": record["run"],
-                "checkpoint_sequences": expected_iterations,
-                "fresh_1000_question_accuracy": scored["accuracy"],
-                "fresh_1000_question_loss": scored["loss"],
-                "recorded_10000_question_accuracy": record["dev_accuracy"],
-                "recorded_10000_question_loss": record["dev_loss"],
-            })
-            print("{:<38} 1,000q {:.4f}   10,000q {:.4f}".format(
-                candidates[-1]["candidate"], scored["accuracy"], record["dev_accuracy"]),
-                flush=True)
-
-    summaries = {"1,000 questions": summarise_by_learning_rate(fresh),
-                 "10,000 questions": summarise_by_learning_rate(recorded)}
-    winners = {label: select_learning_rate(summary) for label, summary in summaries.items()}
-
-    COMPARISON_FILE.write_bytes(json.dumps({
-        "purpose": ("Compare the two development evaluators on the same 15 saved models. The "
-                    "1,000-question scores were computed fresh from the saved final "
-                    "checkpoints; the 10,000-question scores are read from results.json."),
-        "evaluators": {
-            "1,000 questions": {
-                "file": str(common.DEV_EVALUATOR_FILE.relative_to(common.ROOT)),
-                "source": "freshly evaluated from saved final checkpoints"},
-            "10,000 questions": {
-                "file": str(common.LARGE_DEV_EVALUATOR_FILE.relative_to(common.ROOT)),
-                "source": "read from results.json, not recomputed"}},
-        "selection_rule": ("highest mean accuracy over seeds 5, 6 and 7; exact ties use lowest "
-                           "mean loss; remaining ties prefer 1e-05, otherwise the smaller rate"),
-        "generation_0_seed": GENERATION_0_SEED,
-        "selected_learning_rate": {label: (None if w is None else w["learning_rate"])
-                                   for label, w in winners.items()},
-        "selection_agrees_across_evaluators": len({
-            None if w is None else w["learning_rate"] for w in winners.values()}) == 1,
-        "per_rate_summary": summaries,
-        "candidates": candidates,
-    }, indent=2).encode("utf-8"))
-
-    plot_comparison(summaries, winners, FIGURE_FILE)
-    return summaries, winners
-
-
-def print_summary(summaries, winners):
-    """One compact table per evaluator, plus the winner under each."""
-    for label, summary in summaries.items():
-        print("\n{} -- mean accuracy over seeds 5, 6, 7".format(label))
-        print("  {:<10} {:>8} {:>8} {:>10}  per-seed".format("rate", "mean", "std", "mean loss"))
-        for row in summary:
-            print("  {:<10} {:>8.4f} {:>8.4f} {:>10.4f}  {}".format(
-                "{:g}".format(row["learning_rate"]), row["mean_accuracy"],
-                row["std_accuracy"], row["mean_loss"],
-                {s: round(a, 4) for s, a in row["per_seed_accuracy"].items()}))
-        winner = winners[label]
-        print("  selected: {:g}".format(winner["learning_rate"]) if winner else "  no selection")
+def print_summary(summary, winner):
+    """One compact table: mean, spread and per-seed accuracy for each rate."""
+    print("\nmean accuracy on 1,000 development questions, over seeds 5, 6, 7")
+    print("  {:<10} {:>8} {:>8} {:>10}  per-seed".format("rate", "mean", "std", "mean loss"))
+    for row in summary:
+        if row["mean_accuracy"] is None:
+            print("  {:<10} {:>8}".format("{:g}".format(row["learning_rate"]), "no data"))
+            continue
+        print("  {:<10} {:>8.4f} {:>8.4f} {:>10.4f}  {}".format(
+            "{:g}".format(row["learning_rate"]), row["mean_accuracy"],
+            row["std_accuracy"], row["mean_loss"],
+            {seed: round(a, 4) for seed, a in row["per_seed_accuracy"].items()}))
+    print("  selected: {:g}".format(winner["learning_rate"]) if winner else "  no selection")
 
 
 def main():
@@ -393,23 +318,13 @@ def main():
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--dry-run", action="store_true",
                         help="Show what would be trained, reused or skipped, then stop")
-    parser.add_argument("--compare-evaluators", action="store_true",
-                        help="Re-score the 15 saved models on the 1,000-question set and "
-                             "compare with the recorded 10,000-question results")
     args = parser.parse_args()
 
-    if not common.LARGE_DEV_EVALUATOR_FILE.exists():
-        raise SystemExit("Missing evaluators. Run scripts/prepare_evaluation_data.py first.")
-
-    if args.compare_evaluators:
-        summaries, winners = compare_evaluators()
-        print_summary(summaries, winners)
-        print("\nwritten:", COMPARISON_FILE.relative_to(common.ROOT))
-        print("written:", FIGURE_FILE.relative_to(common.ROOT))
-        return
+    if not common.DEV_EVALUATOR_FILE.exists():
+        raise SystemExit("Missing evaluator. Run scripts/prepare_evaluation_data.py first.")
 
     # Train and score every outstanding grid cell, then apply the selection rule
-    # to the 10,000-question scores and record the chosen checkpoint.
+    # and record the chosen checkpoint.
     records = run_grid(args.dry_run)
     if records is None:
         return
@@ -420,8 +335,10 @@ def main():
     if winner is None:
         raise SystemExit("No learning rate has all three seeds completed; not selecting.")
     write_selection(records, summary, winner)
-    print_summary({"10,000 questions": summary}, {"10,000 questions": winner})
+    plot_summary(summary, winner, FIGURE_FILE)
+    print_summary(summary, winner)
     print("\nwritten:", SELECTION_FILE.relative_to(common.ROOT))
+    print("written:", FIGURE_FILE.relative_to(common.ROOT))
 
 
 if __name__ == "__main__":

@@ -48,6 +48,10 @@ specific dependency instead of deleting blindly or inventing a reason to keep it
 - `Development/` — local, Git-ignored operational and debugging material:
   `Development/reports/` for operational reports and handovers,
   `Development/outputs/` for temporary debugging output.
+- `temporary_checks/` — retired functionality kept at the user's request. A
+  deliberate, currently **trackable** exception: do not add it to `.gitignore`.
+  Code under `scripts/` must never import from it, and no reproduction step may
+  depend on it. It holds only the retired 10,000-question evaluator rebuild.
 - `upstream/icl-dynamics/` — the authors' code, vendored unmodified.
 
 **Do not copy measurements or figures into `findings/`.** A finding references
@@ -134,7 +138,8 @@ Always make clear which of the two a number refers to.
 
 ## Version control
 
-- Track: code, the class split record, and `README.md` / `CLAUDE.md`.
+- Track: code, the class split record, `README.md` / `CLAUDE.md`, and
+  `temporary_checks/` (excluding any large file it regenerates).
 - Ignore: environments, caches, `Development/`, and `results/` apart from the
   class split record.
 - A fresh clone has no run outputs. Any number a finding relies on must be

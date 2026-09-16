@@ -18,11 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM = ROOT / "upstream" / "icl-dynamics"
 FEATURE_FILE = UPSTREAM / "omniglot_resnet18_randomized_order_s0.h5"
 EVALUATION_DATA = ROOT / "results" / "evaluation_data"
-# Two development evaluators, both on the same 100 held-out classes:
-# the small one is loaded into training and scored at every evaluation point;
-# the large one is never loaded into training and scores final checkpoints only.
+# The fixed 1,000-question development evaluator, drawn from 100 held-out
+# classes. Loaded into training for monitoring, and used to compare final models.
 DEV_EVALUATOR_FILE = EVALUATION_DATA / "eval_dev.h5"
-LARGE_DEV_EVALUATOR_FILE = EVALUATION_DATA / "eval_dev_large.h5"
 
 # JAX has no native-Windows GPU build, and we want runs to be comparable
 # regardless of what hardware happens to be present.

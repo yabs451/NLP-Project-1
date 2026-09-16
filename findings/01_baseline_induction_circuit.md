@@ -3,6 +3,15 @@
 Generation 0 | 15 September 2026 | source run:
 `results/base_task/generation_0_original_data_init_seed_5`
 
+> **Retired, 16 September 2026.** This run used the authors' learning rate of
+> 1e-5. The learning-rate search (finding 03) selected 1e-4, so this model is no
+> longer the project's generation 0 and its lineage was retired. Its checkpoints
+> and `log.h5` were deleted; the analysis outputs cited below were kept, so the
+> numbers and figures here remain valid, but they can no longer be regenerated
+> without retraining. The one model still in use from this run is its final
+> checkpoint, which serves as the 1e-5 / seed-5 tuning candidate and now lives at
+> `results/base_task/tuning/learning_rate_1e-05_init_seed_5/`.
+
 ## Question
 
 Does the authors' small transformer, trained unchanged on the symbol–label

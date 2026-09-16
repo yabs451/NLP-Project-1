@@ -26,11 +26,9 @@ the matching symbol.
 
 | Stage | Status |
 | --- | --- |
-| Generation 0 — baseline trained on the real task | done (finding 01) |
-| Generation 1 — first recursive successor, base task | done, no degradation this evaluator can resolve (finding 02) |
-| Learning-rate search, 5 rates × 3 seeds | done, selected **1e-4** (finding 03) |
-| Fresh 1,000-question re-evaluation and evaluator comparison | done (finding 03) |
-| Further recursive generations | not run |
+| Learning-rate search, 6 rates × 3 seeds | done, selected **1e-3** (finding 03) |
+| Pilot generation 0 and generation 1 at 1e-5 | **retired** — the search rejected that rate (findings 01, 02) |
+| Recursive generations at the selected rate | not run |
 | Extended task (predict next symbol + its label) | **not implemented** |
 
 Only the **base task** (predict the query's label) exists. The **extended task**
@@ -65,6 +63,7 @@ NLP-Project-1/
 ├── scripts/                  maintained experiment and analysis code
 ├── results/                  numerical outputs, saved models, tables, figures
 ├── findings/                 written scientific interpretation
+├── temporary_checks/         one retired comparison, kept at the user's request
 ├── Development/              local, Git-ignored operational material (optional)
 └── upstream/icl-dynamics/    the authors' code, unmodified
 ```
@@ -74,16 +73,22 @@ NLP-Project-1/
 | Script | What it does |
 | --- | --- |
 | `scripts/common.py` | Shared helpers: project paths, the authors' baseline arguments, loading features and checkpoints, rebuilding a run's evaluators, and scoring a checkpoint. Imported by everything else. |
-| `scripts/prepare_evaluation_data.py` | Chooses the 100 development and 100 reserved final-test classes, checks they are disjoint, and builds both fixed development question sets. Run once, before any training. |
-| `scripts/evaluate_on_dev.py` | Scores one saved checkpoint on a development set. |
+| `scripts/prepare_evaluation_data.py` | Chooses the 100 development and 100 reserved final-test classes, checks they are disjoint, and builds the fixed 1,000-question development set. Run once, before any training. |
+| `scripts/evaluate_on_dev.py` | Scores one saved checkpoint on the development set. |
 | `scripts/base_task/train_original.py` | Trains one model on the original task by running the authors' `main.py`. |
-| `scripts/base_task/tune_learning_rate.py` | Runs the learning-rate grid and applies the selection rule; `--compare-evaluators` re-scores the saved models on the smaller set and writes the comparison and figure. |
+| `scripts/base_task/tune_learning_rate.py` | Runs the learning-rate grid, applies the selection rule, and writes the results table, the selection record and the comparison figure. |
 | `scripts/base_task/run_recursive.py` | Generates training data from a parent model's own predictions, then trains a successor on it. |
 | `scripts/base_task/analyse_runs.py` | Learning curves, per-head previous-token and induction scores across checkpoints, an attention map, and final-checkpoint head ablations. |
 
 `Development/` holds operational reports and debugging output. It is optional
 local material: nothing under `scripts/` depends on it, and reproduction never
 requires it.
+
+`temporary_checks/` holds a **retired evaluation-size comparison**, kept at the
+user's request. The project briefly maintained a second, 10,000-question
+development evaluator to check whether 1,000 questions were precise enough to
+choose between models. They agreed, so the larger set was retired. Nothing in
+the main experiment uses or imports it — see `temporary_checks/README.md`.
 
 ## Setup
 
@@ -118,21 +123,10 @@ test. This writes:
 - `results/evaluation_data/class_splits.json` — exact class IDs, selection rule
   and every seed. **The one tracked file under `results/`**: it is the protocol
   and must stay auditable.
-- `results/evaluation_data/eval_dev.h5` — 1,000 fixed development questions.
-- `results/evaluation_data/eval_dev_large.h5` — 10,000 fixed development questions.
-
-**Why two development sets.** Both are drawn from the same 100 held-out classes
-under the same task rules, differing only in size and seed.
-
-| | questions | seed | loaded into training? | used for |
-| --- | ---: | ---: | --- | --- |
-| `fsl_dev_class` | 1,000 | 1007 | yes | monitoring, scored at every evaluation point during a run |
-| `fsl_dev_class_large` | 10,000 | 3007 | no | comparing final checkpoints of different models |
-
-Near 97% accuracy the standard error is about 0.54 points at 1,000 questions and
-0.17 at 10,000. The two sets are different samples, so their numbers are not
-interchangeable — the same model can score 96.7% on one and 95.6% on the other
-without contradiction.
+- `results/evaluation_data/eval_dev.h5` — 1,000 fixed development questions
+  (`fsl_dev_class`, seed 1007). This is the project's single development
+  evaluator: it is loaded into training for monitoring, and it is what final
+  models are compared on.
 
 **The reserved final test has no data generated and has never been scored.**
 `--build-final-test` regenerates it deterministically when the project is ready.
@@ -159,34 +153,26 @@ at batch size 32. The run refuses to write into an existing folder.
 ```
 
 `--dry-run` lists what would be trained, reused or skipped, then stops. The real
-run trains the 5 × 3 grid (rates 1e-6, 3e-6, 1e-5, 3e-5, 1e-4; seeds 5, 6, 7) on
-the original task with true targets, scores each final checkpoint on the
-10,000-question set, and applies the selection rule.
+run trains the 6 × 3 grid (rates 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 1e-3; seeds 5, 6,
+7) on the original task with true targets, scores each final checkpoint on the
+1,000-question development set, and applies the selection rule. It also writes
+the comparison figure.
+
+1e-3 was added after the first five rates put the winner at the top of the
+range. The search stopped there — no further rate was tested.
 
 Safe to stop and restart: results are written after every candidate and finished
 candidates are skipped. A finished run whose configuration matches is reused
 rather than retrained, which is why the published baseline serves as its own
 grid cell.
 
-## 4. Re-evaluate saved models and compare the evaluators
+## 4. Score a single saved checkpoint
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/base_task/tune_learning_rate.py --compare-evaluators
+.\.venv\Scripts\python.exe scripts/evaluate_on_dev.py results/base_task/tuning/learning_rate_0.001_init_seed_5
 ```
 
-Loads each of the 15 saved final checkpoints and scores it **fresh** on the
-1,000-question set — never reading a training log or an earlier record — then
-reads back the recorded 10,000-question scores and writes the comparison and the
-figure. No training.
-
-To score a single saved checkpoint:
-
-```powershell
-.\.venv\Scripts\python.exe scripts/evaluate_on_dev.py results/base_task/tuning/learning_rate_0.0001_init_seed_5
-```
-
-Add `--small` for the 1,000-question set, or `--checkpoint <sequences>` for a
-checkpoint other than the last.
+Add `--checkpoint <sequences>` for a checkpoint other than the last.
 
 ## 5. Run a recursive successor
 
@@ -223,10 +209,10 @@ adapts to whichever checkpoints exist.
 | `analysis/` | `analysis.json` plus `curves.png`, `head_measures.png`, `attention_example.png` | findings 01 and 02 |
 | `generated_training_data.h5` | successors only: class/exemplar indices and labels with the query target replaced, plus the true answers for diagnostics | the successor's own training loop |
 | `generation_metadata.json` | successors only: generation number, parent checkpoint, generation rule, target-quality statistics, worked examples | finding 02 |
-| `tuning/results.json` | the grid record and its 10,000-question scores | tuning, comparison |
+| `tuning/results.json` | every candidate's learning rate, seed, run path and 1,000-question accuracy and loss | tuning, finding 03 |
 | `tuning/selection.json` | selection rule, per-rate means, the winning rate and the chosen generation-0 checkpoint | finding 03 |
-| `tuning/evaluator_comparison.json` | per-candidate scores on both evaluators, per-rate means, winner under each | finding 03 |
-| `tuning/learning_rate_comparison.png` | the comparison figure | finding 03 |
+| `tuning/learning_rate_comparison.png` | final accuracy against learning rate, all six rates | finding 03 |
+| `tuning/evaluator_comparison.json`, `tuning/evaluator_size_comparison.png` | **historical**: the retired 1,000-vs-10,000 comparison, covering the original 15 candidates only | finding 03 |
 
 We deliberately do **not** produce timing files, saved console transcripts,
 standalone verification reports or setup-inspection dumps.
@@ -242,19 +228,21 @@ Tuning runs keep only the first and last checkpoint, because only final models
 are compared there. Reducing snapshots does not reduce the learning curves,
 which are logged separately in `log.h5`.
 
-Generations 0 and 1 were trained before this policy, with 1,001 checkpoints
-each. They now keep the 64 that the existing figures and this policy need, and
-their analysis regenerates from them unchanged.
+The retired 1e-5 pilot runs (generations 0 and 1) no longer hold checkpoints at
+all: only the analysis outputs that findings 01 and 02 cite were kept, so those
+numbers and figures remain readable but cannot be regenerated without
+retraining.
 
 ## Where the results are
 
 - **Findings** (the science): `findings/01_baseline_induction_circuit.md`,
   `findings/02_first_recursive_generation.md`,
   `findings/03_learning_rate_search.md`.
-- **Comparison table**: `results/base_task/tuning/evaluator_comparison.json`.
+- **Tuning table**, all 18 candidates: `results/base_task/tuning/results.json`.
+- **Selection record**: `results/base_task/tuning/selection.json`.
 - **Comparison figure**: `results/base_task/tuning/learning_rate_comparison.png`.
-- **Selected generation-0 checkpoint**:
-  `results/base_task/tuning/learning_rate_0.0001_init_seed_5/checkpoints/00001000000.eqx`
+- **Selected model** (learning rate 1e-3, seed 5):
+  `results/base_task/tuning/learning_rate_0.001_init_seed_5/checkpoints/00001000000.eqx`
 
 ## What is in Git
 
@@ -272,22 +260,23 @@ files and every run. Ignored files are **not backed up anywhere**.
 
 ## Open decisions and limitations
 
-**Awaiting your decision:**
+**Before the six-successor experiment:**
 
-1. **Which development evaluator to keep.** Both currently exist. They select the
-   same learning rate and give the same ranking, so the smaller one would have
-   sufficed here; the larger one measures more precisely and would matter for
-   closer comparisons. Retiring one means deleting its `.h5`, its build step in
-   `prepare_evaluation_data.py`, its recorded seed, and the comparison code that
-   reads both.
-2. **Whether to retrain generation 0 at the selected 1e-4** before running the
-   recursive chain, and whether `findings/` should be tracked.
+1. **The selected model has only its first and last checkpoint.** Tuning runs use
+   the endpoints policy, so the 1e-3 / seed-5 model cannot support the
+   mechanistic analysis in findings 01 and 02, which needs snapshots across
+   training. Producing those would mean retraining at 1e-3 under the
+   55-checkpoint policy. Not done here, and not done silently.
+2. **Successor folder naming.** `run_recursive.py` names a successor from the
+   generation number and seed alone, ignoring which parent it came from, so two
+   lineages would collide. It fails safely rather than overwriting, but the
+   naming needs settling before six successors are run.
+3. **Whether `findings/` should be tracked** — still undecided, untouched.
 
-**Limitations.** 1e-4 is the largest rate tested, so the optimum may lie above
-it; the result is *best among the tested rates at this budget*. Three seeds, one
-budget, final checkpoints only. No mechanistic analysis of the tuned models yet.
-Generations 0 and 1 were trained at the authors' 1e-5, so they are a pilot rather
-than part of the tuned lineage. Training settings must never drift between
+**Limitations.** 1e-3 is the largest rate tested and the search stopped there by
+decision, so the optimum may lie above it; the result is *best among the tested
+rates at this budget*. Three seeds, one budget, final checkpoints only. No
+mechanistic analysis at 1e-3 yet. Training settings must never drift between
 generations in a comparison.
 
 ## Attribution
