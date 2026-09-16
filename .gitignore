@@ -5,9 +5,11 @@ __pycache__/
 .pytest_cache/
 wandb/
 
-# Local operational and debugging material. Never required to reproduce the
-# experiments, and never depended on by scripts/.
+# Local-only material: operational notes, retired comparison code and the
+# working conventions. None of it is needed to reproduce the experiments.
 Development/
+temporary_checks/
+CLAUDE.md
 
 # Generated experimental output. Checkpoints and generated datasets are large,
 # so results/ is not tracked; every number a finding relies on is quoted in the

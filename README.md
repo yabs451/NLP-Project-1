@@ -1,9 +1,14 @@
 # Interpretability of model collapse in induction circuits
 
-Honours NLP research project. We train a small transformer on an in-context
-learning task, then retrain it repeatedly on **its own predictions**, and watch
-whether the *mechanism* inside it — the induction circuit — breaks down before
-its accuracy does.
+An Honours NLP research project. We train a small transformer on an in-context
+learning task, then retrain it repeatedly on **its own predictions**, and ask a
+mechanistic question:
+
+> Does the induction circuit inside the model weaken across recursive
+> generations *before* its overall accuracy declines?
+
+This is an initial investigation over one chain of five models. Degradation is
+not assumed.
 
 Built on [Singh et al. (2024), *What needs to go right for an induction
 head?*](https://arxiv.org/abs/2404.07129) and their
@@ -12,89 +17,75 @@ head?*](https://arxiv.org/abs/2404.07129) and their
 ## The task
 
 Each sequence is two symbol–label pairs followed by a query symbol matching one
-of them. The model outputs the query's label, one of 5. Labels are reassigned at
-random every sequence, so nothing can be memorised — the answer is only
-available **from the context**. Symbols are precomputed ResNet18 feature vectors
-of Omniglot characters.
+of them. The model outputs the query's label, one of five. Labels are reassigned
+at random for every sequence, so no fixed symbol-to-label mapping can be relied
+on — the answer has to be read out of the context. Symbols are precomputed
+ResNet18 feature vectors of Omniglot characters.
 
 The mechanism that solves this is an *induction circuit*: a previous-token head
 in layer 0 lets each label token carry information about the symbol before it,
-and an induction head in layer 1 lets the query attend to the label following
+and an induction head in layer 1 lets the query attend to the label that follows
 the matching symbol.
 
-## What is done
+## What is implemented
 
-| Stage | Status |
-| --- | --- |
-| Learning-rate search, 6 rates × 3 seeds | done, selected **1e-3** (finding 03) |
-| Pilot generation 0 and generation 1 at 1e-5 | **retired** — the search rejected that rate (findings 01, 02) |
-| Recursive generations at the selected rate | not run |
-| Extended task (predict next symbol + its label) | **not implemented** |
+- The **base task** only: the model predicts the query's label. The extended
+  task (also predicting a following symbol and its label) is not implemented.
+- A **learning-rate search** over six rates × three initialisation seeds.
+- A **five-model recursive chain**: generation 0 trained on the real task, then
+  generations 1–4 each trained on the previous generation's own answers.
+- Analysis of accuracy, loss, previous-token and induction attention measures,
+  head ablations, and a comparison across the five generations.
 
-Only the **base task** (predict the query's label) exists. The **extended task**
-is future work and will live in `scripts/extended_task/`.
-
-**Generation numbering.** Generation 0 is the original model trained on real
-data; generation 1 is the first successor, trained on generation 0's predictions.
-"N additional generations" means N successors; the total number of models is
-N + 1.
-
-**Two decisions are still open** — see the end of this file.
+Generation 0 is the original model. "N additional generations" means N
+successors, so five models means generation 0 plus four successors.
 
 ## Whose code is whose
 
 - `upstream/icl-dynamics/` — **the authors' code, vendored unmodified** at commit
-  `85b895c720844e795734b9391b32d2619065f9a1`, tracked directly in this repository
-  (not a submodule), including the 16.6 MB Omniglot feature file. We never edit
-  it, and we use only the first baseline in their `ih_paper_runs.sh`.
+  `85b895c720844e795734b9391b32d2619065f9a1`, tracked here directly (not a
+  submodule) including the 16.6 MB Omniglot feature file. We never edit it, and
+  use only the first baseline configuration in their `ih_paper_runs.sh`.
 - `scripts/` — **our code**. It reads the authors' baseline command out of their
   shell script and calls their model, sampler, optimizer, loss, update,
   evaluation and checkpoint functions. We add only what they do not provide: our
   evaluation protocol, the recursive loop, the tuning search and the analysis.
 
-## Folders
+## Structure
 
 ```
 NLP-Project-1/
-├── CLAUDE.md                 working conventions for this project
-├── README.md                 this file
-├── requirements.txt          the version pins we chose
-├── requirements-lock.txt     every installed package, for exact rebuilds
-├── scripts/                  maintained experiment and analysis code
-├── results/                  numerical outputs, saved models, tables, figures
-├── findings/                 written scientific interpretation
-├── temporary_checks/         one retired comparison, kept at the user's request
-├── Development/              local, Git-ignored operational material (optional)
+├── README.md
+├── requirements.txt          version pins, with the reasoning
+├── requirements-lock.txt     full freeze — install from this
+├── scripts/
+│   ├── common.py                    shared helpers
+│   ├── prepare_evaluation_data.py   class splits + the development questions
+│   ├── evaluate_on_dev.py           score one saved checkpoint
+│   └── base_task/
+│       ├── train_original.py        train a model on the real task
+│       ├── tune_learning_rate.py    the learning-rate search
+│       ├── run_recursive.py         generate data from a parent, train successors
+│       └── analyse_runs.py          per-run analysis and the cross-generation comparison
+├── findings/                 the scientific write-ups
+├── results/                  everything the scripts generate (not distributed)
 └── upstream/icl-dynamics/    the authors' code, unmodified
 ```
 
-### Maintained scripts
-
 | Script | What it does |
 | --- | --- |
-| `scripts/common.py` | Shared helpers: project paths, the authors' baseline arguments, loading features and checkpoints, rebuilding a run's evaluators, and scoring a checkpoint. Imported by everything else. |
-| `scripts/prepare_evaluation_data.py` | Chooses the 100 development and 100 reserved final-test classes, checks they are disjoint, and builds the fixed 1,000-question development set. Run once, before any training. |
-| `scripts/evaluate_on_dev.py` | Scores one saved checkpoint on the development set. |
-| `scripts/base_task/train_original.py` | Trains one model on the original task by running the authors' `main.py`. |
-| `scripts/base_task/tune_learning_rate.py` | Runs the learning-rate grid, applies the selection rule, and writes the results table, the selection record and the comparison figure. |
-| `scripts/base_task/run_recursive.py` | Generates training data from a parent model's own predictions, then trains a successor on it. |
-| `scripts/base_task/analyse_runs.py` | Learning curves, per-head previous-token and induction scores across checkpoints, an attention map, and final-checkpoint head ablations. |
-
-`Development/` holds operational reports and debugging output. It is optional
-local material: nothing under `scripts/` depends on it, and reproduction never
-requires it.
-
-`temporary_checks/` holds a **retired evaluation-size comparison**, kept at the
-user's request. The project briefly maintained a second, 10,000-question
-development evaluator to check whether 1,000 questions were precise enough to
-choose between models. They agreed, so the larger set was retired. Nothing in
-the main experiment uses or imports it — see `temporary_checks/README.md`.
+| `common.py` | Project paths, the authors' baseline arguments, loading features and checkpoints, rebuilding a run's evaluators, scoring a checkpoint. Imported by the rest. |
+| `prepare_evaluation_data.py` | Picks the 100 development and 100 reserved final-test classes, checks they are disjoint, and builds the fixed 1,000-question development set. Run once. |
+| `evaluate_on_dev.py` | Scores one saved checkpoint on the development set. |
+| `train_original.py` | Trains one model on the real task by running the authors' `main.py`, with our evaluator set and checkpoint schedule. |
+| `tune_learning_rate.py` | Trains the learning-rate grid, applies the selection rule, writes the results table, selection record and figure. |
+| `run_recursive.py` | For each successor: generates a million training examples from the parent's own answers, then trains a freshly initialised student on them. |
+| `analyse_runs.py` | Per run: learning curves, per-head attention measures across checkpoints, an attention map, head ablations. With `--compare`: the across-generation table and figure. |
 
 ## Setup
 
-Python 3.10 (this machine has 3.10.11). All commands run **from the project
-root** — the folder containing this README — in PowerShell. No environment
-activation is needed; the commands call the interpreter directly.
+Python 3.10. All commands run **from the project root** in PowerShell; no
+environment activation is needed because they call the interpreter directly.
 
 ```powershell
 python -m venv .venv
@@ -102,186 +93,150 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-Install from `requirements-lock.txt`; `requirements.txt` records the pins we
-chose and why. JAX stays at 0.4.26, the version the authors tested. Everything
-runs on **CPU** — JAX has no native-Windows GPU build — and needs no account.
+Everything runs on **CPU** — JAX has no native-Windows GPU build — and needs no
+online account. JAX stays at 0.4.26, the version the authors tested.
 
-## 1. Prepare the evaluation data
+## Reproducing the project
+
+### 1. Build the evaluation data
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/prepare_evaluation_data.py
 ```
 
-Run once before any training. Deterministic, so re-running is safe.
+Run once, before any training. Deterministic, so re-running is safe.
 
 The authors' class split is 50 training / 1473 unused / 100 test, and their own
-test evaluator is scored throughout training — so those 100 classes are not a
-clean final test. We take both of our splits from the **1,473 classes no original
-evaluator touches**: 100 for development and a disjoint 100 reserved as a final
-test. This writes:
+test evaluator is scored throughout training, so those 100 classes cannot serve
+as a clean final test. We take both of our splits from the **1,473 classes no
+original evaluator touches**: 100 for development and a disjoint 100 reserved as
+a final test.
 
-- `results/evaluation_data/class_splits.json` — exact class IDs, selection rule
-  and every seed. **The one tracked file under `results/`**: it is the protocol
-  and must stay auditable.
-- `results/evaluation_data/eval_dev.h5` — 1,000 fixed development questions
-  (`fsl_dev_class`, seed 1007). This is the project's single development
-  evaluator: it is loaded into training for monitoring, and it is what final
-  models are compared on.
+This writes `results/evaluation_data/class_splits.json` (the exact class IDs,
+selection rule and seeds) and `results/evaluation_data/eval_dev.h5` — the fixed
+**1,000-question development evaluator**, the single evaluator used everywhere
+in this project. **The reserved final test has never been generated or scored.**
 
-**The reserved final test has no data generated and has never been scored.**
-`--build-final-test` regenerates it deterministically when the project is ready.
-
-## 2. Train one model on the original task
+### 2. Reproduce the learning-rate search
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/base_task/train_original.py --run-name my_run
-```
-
-Options: `--learning-rate` and `--init-seed` override the published values
-(1e-5, seed 5); `--results-subfolder` places the run inside a subfolder of
-`results/base_task/`; `--save-checkpoints endpoints` keeps only the first and
-last checkpoint; `--dry-run` prints the underlying command and stops.
-
-Always trains the authors' full schedule: 1,000,000 sequences = 31,250 updates
-at batch size 32. The run refuses to write into an existing folder.
-
-## 3. Reproduce the learning-rate search
-
-```powershell
-.\.venv\Scripts\python.exe scripts/base_task/tune_learning_rate.py --dry-run
 .\.venv\Scripts\python.exe scripts/base_task/tune_learning_rate.py
 ```
 
-`--dry-run` lists what would be trained, reused or skipped, then stops. The real
-run trains the 6 × 3 grid (rates 1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 1e-3; seeds 5, 6,
-7) on the original task with true targets, scores each final checkpoint on the
-1,000-question development set, and applies the selection rule. It also writes
-the comparison figure.
+Trains six rates (1e-6, 3e-6, 1e-5, 3e-5, 1e-4, 1e-3) at three initialisation
+seeds (5, 6, 7) — 18 models — on the real task, scores each final checkpoint on
+the development set, and selects the rate with the highest mean accuracy across
+the three seeds.
 
-1e-3 was added after the first five rates put the winner at the top of the
-range. The search stopped there — no further rate was tested.
+**Selected: 1e-3**, the best *among the tested rates at this training budget* —
+not a proven global optimum. It sits at the top of the range tested, and the
+search stopped there.
 
-Safe to stop and restart: results are written after every candidate and finished
-candidates are skipped. A finished run whose configuration matches is reused
-rather than retrained, which is why the published baseline serves as its own
-grid cell.
+Results are written after every candidate and finished candidates are skipped,
+so the command is safe to stop and restart.
 
-## 4. Score a single saved checkpoint
+### 3. Train generation 0
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/evaluate_on_dev.py results/base_task/tuning/learning_rate_0.001_init_seed_5
+.\.venv\Scripts\python.exe scripts/base_task/train_original.py --results-subfolder recursive --run-name generation_0 --learning-rate 0.001 --init-seed 5
 ```
 
-Add `--checkpoint <sequences>` for a checkpoint other than the last.
+Seed 5 was fixed in advance as the seed carried forward; it was not chosen for
+scoring highest.
 
-## 5. Run a recursive successor
+### 4. Train the four successors
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/base_task/run_recursive.py --parent results/base_task/<parent_run> --generations 1
+.\.venv\Scripts\python.exe scripts/base_task/run_recursive.py --parent results/base_task/recursive/generation_0 --generations 4
 ```
 
-Draws 1,000,000 questions from the **original** training distribution, asks the
-parent for each answer and stores its **argmax over all five labels** as the new
-target (replacing only the query's target), saves the dataset as class/exemplar
-indices rather than feature vectors, then trains a **freshly initialised** model
-— not the parent's weights — for exactly one pass. `--generations N` chains N
-successors; completed generations are never retrained.
+For each successor this draws 1,000,000 questions from the **original** training
+distribution — same classes, same context construction, correct context labels —
+asks the parent for each answer and keeps its **argmax over all five labels** as
+the training target, replacing only the query's answer. No true targets are
+mixed in. It then trains a **freshly initialised** model (new weights, new
+optimizer — not the parent's weights) for one pass. `--generations N` chains N
+successors; finished generations are never retrained.
 
-## 6. Analyse a run
+### 5. Analyse
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/base_task/analyse_runs.py results/base_task/<run>
+.\.venv\Scripts\python.exe scripts/base_task/analyse_runs.py results/base_task/recursive/generation_0
+.\.venv\Scripts\python.exe scripts/base_task/analyse_runs.py --compare results/base_task/recursive
 ```
 
-Writes `analysis/` inside the run folder: learning curves, per-head
-previous-token and induction scores across the available checkpoints, an
-attention map, and final-checkpoint head ablations. Candidate heads are picked
-from **that model's own scores**, never inherited from another model. The script
-adapts to whichever checkpoints exist.
+Run the first command once per generation, then the comparison. Per run it
+writes learning curves, per-head previous-token and induction scores across
+checkpoints, an attention map and final-checkpoint head ablations. The
+comparison writes the across-generation table and figure.
 
-## What the outputs contain, and how the analysis uses them
+Candidate heads are selected from **each model's own final scores**, never
+inherited from another generation; the comparison records whether the same head
+indices came out anyway.
 
-| File | Contents | Read by |
-| --- | --- | --- |
-| `config.json` | every resolved option the run used, including seeds and schedules | analysis, tuning, recursive pipeline |
-| `log.h5` | one training loss and gradient norm per update (31,250), and per-evaluator accuracy/loss/in-context-accuracy arrays at each evaluation point | `analyse_runs.py`, for the learning curves |
-| `checkpoints/` | one `.eqx` per checkpoint, named by sequence count, each ~809 KB holding weights, optimizer state and PRNG keys | analysis, evaluation, recursive pipeline |
-| `analysis/` | `analysis.json` plus `curves.png`, `head_measures.png`, `attention_example.png` | findings 01 and 02 |
-| `generated_training_data.h5` | successors only: class/exemplar indices and labels with the query target replaced, plus the true answers for diagnostics | the successor's own training loop |
-| `generation_metadata.json` | successors only: generation number, parent checkpoint, generation rule, target-quality statistics, worked examples | finding 02 |
-| `tuning/results.json` | every candidate's learning rate, seed, run path and 1,000-question accuracy and loss | tuning, finding 03 |
-| `tuning/selection.json` | selection rule, per-rate means, the winning rate and the chosen generation-0 checkpoint | finding 03 |
-| `tuning/learning_rate_comparison.png` | final accuracy against learning rate, all six rates | finding 03 |
-| `tuning/evaluator_comparison.json`, `tuning/evaluator_size_comparison.png` | **historical**: the retired 1,000-vs-10,000 comparison, covering the original 15 candidates only | finding 03 |
+## What gets generated
 
-We deliberately do **not** produce timing files, saved console transcripts,
-standalone verification reports or setup-inspection dumps.
+`results/` is produced by the commands above and is not distributed with the
+repository — regenerate it by following the steps in order.
+
+| Path | Contents |
+| --- | --- |
+| `results/evaluation_data/` | `class_splits.json` (the evaluation protocol) and `eval_dev.h5` (the 1,000 fixed questions) |
+| `results/base_task/tuning/` | one folder per tuning candidate, plus `results.json` (all 18 candidates), `selection.json` and `learning_rate_comparison.png` |
+| `results/base_task/recursive/generation_<n>/` | one folder per generation |
+| `results/base_task/recursive/generation_comparison.json` / `.png` | the across-generation comparison |
+
+Inside a generation folder:
+
+| File | Contents |
+| --- | --- |
+| `config.json` | every resolved setting, including seeds and schedules |
+| `log.h5` | one training loss and gradient norm per update (31,250), plus development accuracy and loss at each evaluation point |
+| `checkpoints/` | the saved models, named by sequence count |
+| `generated_training_data.h5` | successors only: the training set as class and exemplar indices plus labels — compact, not copied feature vectors |
+| `generation_metadata.json` | successors only: parent checkpoint, generation rule, how good the parent's answers were, and worked examples |
+| `analysis/` | `analysis.json` plus `curves.png`, `head_measures.png`, `attention_example.png` |
+
+Two older files under `results/base_task/tuning/` — `evaluator_comparison.json`
+and `evaluator_size_comparison.png` — are retained history from a one-off check
+of whether 1,000 development questions were enough to choose between models.
+They cover the **original 15 candidates only**, not all 18.
 
 ## Checkpoint policy
 
-Main mechanistic runs save **55 checkpoints directly during training**:
-initialisation, four early snapshots near 1,000 / 2,000 / 5,000 / 10,000
-sequences, then every 20,000 through 1,000,000. Requests land on the next batch
-boundary, so the early ones are saved at 1,024 / 2,016 / 5,024 / 10,016.
+Runs that will be analysed mechanistically save **55 checkpoints, written
+directly during training**: the initialisation, four early snapshots while the
+circuit is still forming, then every 20,000 sequences to 1,000,000. Requests
+land on the next batch boundary, so the early ones are saved at 1,024 / 2,016 /
+5,024 / 10,016.
 
-Tuning runs keep only the first and last checkpoint, because only final models
-are compared there. Reducing snapshots does not reduce the learning curves,
-which are logged separately in `log.h5`.
+Tuning candidates instead save only the **first and last** checkpoint, because
+only their final models are ever compared. That keeps the 18-model search small.
+It also means a tuning candidate cannot support mechanistic analysis, which is
+why generation 0 is trained separately rather than reused from the search.
 
-The retired 1e-5 pilot runs (generations 0 and 1) no longer hold checkpoints at
-all: only the analysis outputs that findings 01 and 02 cite were kept, so those
-numbers and figures remain readable but cannot be regenerated without
-retraining.
+Reducing snapshots never reduces the learning curves: those come from `log.h5`,
+which is written at every evaluation point regardless.
 
-## Where the results are
+## Limitations
 
-- **Findings** (the science): `findings/01_baseline_induction_circuit.md`,
-  `findings/02_first_recursive_generation.md`,
-  `findings/03_learning_rate_search.md`.
-- **Tuning table**, all 18 candidates: `results/base_task/tuning/results.json`.
-- **Selection record**: `results/base_task/tuning/selection.json`.
-- **Comparison figure**: `results/base_task/tuning/learning_rate_comparison.png`.
-- **Selected model** (learning rate 1e-3, seed 5):
-  `results/base_task/tuning/learning_rate_0.001_init_seed_5/checkpoints/00001000000.eqx`
-
-## What is in Git
-
-**Tracked:** all code, `CLAUDE.md`, `README.md`, both requirements files, the
-whole vendored upstream repository, and `results/evaluation_data/class_splits.json`.
-
-**Ignored:** `.venv/`, caches, `Development/`, and everything else under
-`results/` — checkpoints, `log.h5`, generated datasets and evaluation data.
-
-`findings/` tracking is an open decision and has not been set either way.
-
-A fresh clone gives you the code, the authors' code, the feature data and the
-evaluation protocol record. You must regenerate the environment, both evaluator
-files and every run. Ignored files are **not backed up anywhere**.
-
-## Open decisions and limitations
-
-**Before the six-successor experiment:**
-
-1. **The selected model has only its first and last checkpoint.** Tuning runs use
-   the endpoints policy, so the 1e-3 / seed-5 model cannot support the
-   mechanistic analysis in findings 01 and 02, which needs snapshots across
-   training. Producing those would mean retraining at 1e-3 under the
-   55-checkpoint policy. Not done here, and not done silently.
-2. **Successor folder naming.** `run_recursive.py` names a successor from the
-   generation number and seed alone, ignoring which parent it came from, so two
-   lineages would collide. It fails safely rather than overwriting, but the
-   naming needs settling before six successors are run.
-3. **Whether `findings/` should be tracked** — still undecided, untouched.
-
-**Limitations.** 1e-3 is the largest rate tested and the search stopped there by
-decision, so the optimum may lie above it; the result is *best among the tested
-rates at this budget*. Three seeds, one budget, final checkpoints only. No
-mechanistic analysis at 1e-3 yet. Training settings must never drift between
-generations in a comparison.
+- **One chain, controlled seeds.** Five models in a single recursive line, all
+  sharing an initialisation seed and training-data seed. That isolates the
+  effect of the changing targets, but it is not a sample of independent chains.
+- **One learning rate, one budget.** 1e-3 was the best of six rates at 31,250
+  updates. It sits at the edge of the tested range.
+- **Attention patterns are not causal claims.** A high induction score for a
+  head does not establish that the head is causally important. Single-head
+  ablation measures the effect of that one intervention on one evaluator; it
+  does not measure the importance of the circuit as a whole.
+- **Degradation across generations and development within training are separate
+  questions.** If two measures move together, nothing here can say which moved
+  first.
+- The reserved 100 final-test classes have never been scored.
 
 ## Attribution
 
-Task, model, samplers, training loop, evaluation and the progress measures are
-from Singh et al. (2024), used under the terms of their repository. Our
-contribution is the evaluation protocol, the recursive pipeline, the tuning
-search, the analysis wrapper and the write-ups in `findings/`.
+The task, model, samplers, training loop, evaluation and the progress-measure
+definitions are from Singh et al. (2024), used under the terms of their
+repository. Ours is the evaluation protocol, the recursive pipeline, the tuning
+search, the analysis and the write-ups in `findings/`.

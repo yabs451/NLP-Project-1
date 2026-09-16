@@ -31,6 +31,20 @@ if str(UPSTREAM) not in sys.path:
     sys.path.insert(0, str(UPSTREAM))
 
 
+def use_above_normal_priority():
+    """Ask Windows to schedule this process above normal.
+
+    Training competes with whatever else is running on the machine. Best effort:
+    does nothing off Windows, and ignores a refusal.
+    """
+    if sys.platform != "win32":
+        return
+    import ctypes
+    ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS)
+
+
 def baseline_arguments():
     """The authors' own baseline command, read out of their shell script.
 

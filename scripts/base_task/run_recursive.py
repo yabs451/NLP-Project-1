@@ -12,14 +12,13 @@ One generation of the loop does three things:
      one pass, then score it on the same fixed development evaluator the
      parent used.
 
-Generation 0 is the original model trained on the real task. Running this
-script once with --generations 1 produces generation 1. Pointing --parent at
-generation 1 later produces generation 2, with no code changes.
+Generation 0 is the original model trained on the real task. Each successor is
+written to results/base_task/recursive/generation_<n>/, and --generations says
+how many to train in sequence.
 
 Usage (from the project root):
   .venv/Scripts/python.exe scripts/base_task/run_recursive.py \
-      --parent results/base_task/generation_0_original_data_init_seed_5 \
-      --generations 1
+      --parent results/base_task/recursive/generation_0 --generations 4
 """
 import argparse
 from functools import partial
@@ -43,7 +42,8 @@ import samplers
 # How many sequences the parent labels at once. Large enough to keep JAX busy,
 # small enough that activations for the batch stay comfortably in memory.
 INFERENCE_BATCH = 2000
-RESULTS = common.ROOT / "results" / "base_task"
+# The whole recursive chain lives in one folder, one subfolder per generation.
+RECURSIVE = common.ROOT / "results" / "base_task" / "recursive"
 
 
 def generation_number(run_folder):
@@ -325,7 +325,7 @@ def train_successor(opts, folder, features, dataset, evaluators, log_path):
 def run_one_generation(parent_folder, opts, features, splits, evaluators):
     """Generate data from the parent, then train and record one successor."""
     number = generation_number(parent_folder) + 1
-    folder = RESULTS / "generation_{}_generated_data_init_seed_{}".format(number, opts.init_seed)
+    folder = RECURSIVE / "generation_{}".format(number)
     if folder.exists():
         raise SystemExit("{} already exists; refusing to overwrite".format(folder))
     folder.mkdir(parents=True)
@@ -369,7 +369,7 @@ def run_one_generation(parent_folder, opts, features, splits, evaluators):
     config["train_seed"] = int(opts.train_seed)
     config["eval_seed"] = int(opts.eval_seed)
     config["run"] = folder.name
-    config["base_folder"] = str(RESULTS)
+    config["base_folder"] = str(RECURSIVE)
     config["load_eval_data"] = [str(common.DEV_EVALUATOR_FILE)]
     (folder / "config.json").write_text(json.dumps(config, indent=2, default=str))
 
@@ -387,6 +387,7 @@ def main():
                         help="How many additional generations to train, one after another")
     args = parser.parse_args()
     args.parent = args.parent.resolve()
+    common.use_above_normal_priority()
 
     # Every generation inherits the parent's scientific settings unchanged, so
     # nothing but the training data differs between generations.

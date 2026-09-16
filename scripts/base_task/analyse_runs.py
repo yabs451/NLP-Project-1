@@ -214,10 +214,154 @@ def ablation(opts, model, data, correct_ind, heads, key):
             "loss": float(np.mean(results["loss"]))}
 
 
+def read_generation_summaries(recursive_folder):
+    """Collect each generation's analysis.json, in generation order.
+
+    Every generation must already have been analysed individually, so the
+    measures being compared were produced by identical code and identical
+    checkpoint-selection rules.
+    """
+    summaries = []
+    for folder in sorted(Path(recursive_folder).glob("generation_*"),
+                         key=lambda f: int(f.name.split("_")[1])):
+        analysis = folder / "analysis" / "analysis.json"
+        if not analysis.exists():
+            raise SystemExit("{} has not been analysed yet".format(folder))
+        summary = json.loads(analysis.read_text(encoding="utf-8"))
+        summary["generation"] = int(folder.name.split("_")[1])
+        # Successors record how good the parent's generated answers were; that
+        # is the quantity most likely to explain any drift down the chain.
+        metadata = folder / "generation_metadata.json"
+        if metadata.exists():
+            quality = json.loads(metadata.read_text(encoding="utf-8"))["target_quality"]
+            summary["parent_target_error_rate"] = quality["parent_argmax_error_rate_vs_true_answer"]
+            summary["parent_out_of_context_rate"] = quality["parent_out_of_context_label_rate"]
+            summary["distinct_questions"] = quality["distinct_questions"]
+        summaries.append(summary)
+    return summaries
+
+
+def plot_generation_comparison(summaries, path):
+    """Three panels: accuracy, circuit measures, and ablation effects by generation."""
+    generations = [s["generation"] for s in summaries]
+    figure, axes = plt.subplots(1, 3, figsize=(15, 4.2))
+
+    axes[0].plot(generations, [s["final_measures"]["dev_acc"] for s in summaries],
+                 marker="o", color="tab:blue")
+    axes[0].axhline(0.2, color="grey", ls=":", lw=1, label="chance over 5 labels")
+    axes[0].axhline(0.5, color="grey", ls="--", lw=1, label="chance within context")
+    axes[0].set_ylabel("final development accuracy")
+    axes[0].set_title("Accuracy by generation")
+    axes[0].set_ylim(0, 1.05)
+    axes[0].legend(fontsize=7)
+
+    axes[1].plot(generations, [max(s["final_measures"]["induction_delta_per_head_layer1"])
+                               for s in summaries], marker="o", label="strongest induction (L1)")
+    axes[1].plot(generations, [max(s["final_measures"]["prev_token_label_positions_per_head_layer0"])
+                               for s in summaries], marker="s", label="strongest previous-token (L0)")
+    axes[1].axhline(0, color="black", lw=0.5)
+    axes[1].set_ylabel("attention measure")
+    axes[1].set_title("Circuit measures by generation")
+    axes[1].legend(fontsize=7)
+
+    # Ablation cost: how much accuracy each model loses when one head is silenced.
+    for key, label in [("candidate_induction_head_ablated", "strongest induction head"),
+                       ("candidate_previous_token_head_ablated", "strongest previous-token head")]:
+        axes[2].plot(generations,
+                     [s["ablations"]["intact"]["acc"] - s["ablations"][key]["acc"]
+                      for s in summaries], marker="o", label=label)
+    axes[2].axhline(0, color="black", lw=0.5)
+    axes[2].set_ylabel("accuracy lost when the head is silenced")
+    axes[2].set_title("Ablation cost by generation")
+    axes[2].legend(fontsize=7)
+
+    for axis in axes:
+        axis.set_xlabel("generation")
+        axis.set_xticks(generations)
+    figure.tight_layout()
+    figure.savefig(path, dpi=150)
+    plt.close(figure)
+
+
+def compare_generations(recursive_folder):
+    """Write the across-generation comparison table and figure."""
+    summaries = read_generation_summaries(recursive_folder)
+    output = Path(recursive_folder)
+
+    # Heads are chosen from each model's own final scores, never inherited. If
+    # the same indices come out anyway, the per-generation numbers are directly
+    # comparable; if they diverge, they are measuring different heads.
+    head_keys = ["induction_layer1_head", "previous_token_layer0_head",
+                 "comparison_layer1_head", "comparison_layer0_head"]
+    heads_per_generation = {key: [s["candidate_heads"][key] for s in summaries]
+                            for key in head_keys}
+    heads_stable = {key: len(set(values)) == 1 for key, values in heads_per_generation.items()}
+
+    rows = []
+    for s in summaries:
+        induction = s["final_measures"]["induction_delta_per_head_layer1"]
+        previous = s["final_measures"]["prev_token_label_positions_per_head_layer0"]
+        rows.append({
+            "generation": s["generation"],
+            "run": s["run"],
+            "dev_accuracy": s["final_measures"]["dev_acc"],
+            "dev_loss": s["final_measures"]["dev_loss"],
+            "strongest_induction_score": max(induction),
+            "strongest_previous_token_score": max(previous),
+            "heads_with_positive_induction_score": sum(1 for v in induction if v > 0),
+            "selected_heads": {key: s["candidate_heads"][key] for key in head_keys},
+            "accuracy_lost_ablating_induction_head":
+                s["ablations"]["intact"]["acc"] - s["ablations"]["candidate_induction_head_ablated"]["acc"],
+            "accuracy_lost_ablating_previous_token_head":
+                s["ablations"]["intact"]["acc"] - s["ablations"]["candidate_previous_token_head_ablated"]["acc"],
+            "parent_target_error_rate": s.get("parent_target_error_rate"),
+            "parent_out_of_context_rate": s.get("parent_out_of_context_rate"),
+        })
+
+    comparison = {
+        "question": ("Does induction-circuit function weaken across recursive generations "
+                     "before overall prediction accuracy declines?"),
+        "chain": "one chain, generations 0 to {}".format(rows[-1]["generation"]),
+        "evaluator": str(DEV_EVALUATOR_FILE.relative_to(ROOT)),
+        "head_selection": ("each model's heads are chosen from its own final scores, never "
+                           "inherited from another generation"),
+        "selected_heads_identical_across_generations": heads_stable,
+        "selected_heads_per_generation": heads_per_generation,
+        "generations": rows,
+    }
+    (output / "generation_comparison.json").write_bytes(
+        json.dumps(comparison, indent=2).encode("utf-8"))
+    plot_generation_comparison(summaries, output / "generation_comparison.png")
+
+    print("{:<5} {:>9} {:>9} {:>11} {:>11} {:>10} {:>10}".format(
+        "gen", "dev acc", "dev loss", "induction", "prev-token", "abl IH", "abl PT"))
+    for row in rows:
+        print("{:<5} {:>9.4f} {:>9.4f} {:>11.4f} {:>11.4f} {:>10.4f} {:>10.4f}".format(
+            row["generation"], row["dev_accuracy"], row["dev_loss"],
+            row["strongest_induction_score"], row["strongest_previous_token_score"],
+            row["accuracy_lost_ablating_induction_head"],
+            row["accuracy_lost_ablating_previous_token_head"]))
+    print("\nsame heads selected in every generation:", heads_stable)
+    print("written:", (output / "generation_comparison.json").relative_to(ROOT))
+    print("written:", (output / "generation_comparison.png").relative_to(ROOT))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("run_folder", type=Path)
+    parser.add_argument("run_folder", type=Path, nargs="?",
+                        help="A run folder to analyse")
+    parser.add_argument("--compare", type=Path, default=None,
+                        help="Folder holding generation_* runs; summarise them together "
+                             "instead of analysing a single run")
     args = parser.parse_args()
+
+    # Comparison mode only reads the per-run analyses, so every generation must
+    # already have been analysed.
+    if args.compare is not None:
+        compare_generations(args.compare.resolve())
+        return
+    if args.run_folder is None:
+        parser.error("give a run folder, or --compare with the folder holding the generations")
     folder = args.run_folder.resolve()
     output = folder / "analysis"
     output.mkdir(exist_ok=True)

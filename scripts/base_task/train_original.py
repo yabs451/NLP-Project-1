@@ -103,6 +103,10 @@ def main():
         args += ["--lr", repr(options.learning_rate)]
     if options.init_seed is not None:
         args += ["--init_seed", str(options.init_seed)]
+    # The authors' command sets --ckpt_every; upstream rejects having both that
+    # and --ckpt_sched, so drop theirs before choosing our own schedule.
+    inherited = args.index("--ckpt_every")
+    del args[inherited:inherited + 2]
     if options.save_checkpoints == "mechanistic":
         args += ["--ckpt_sched"] + [str(i) for i in mechanistic_checkpoint_schedule()]
     else:
@@ -119,8 +123,12 @@ def main():
     environment = os.environ.copy()
     environment.update(JAX_PLATFORMS="cpu", WANDB_MODE="disabled", PYTHONDONTWRITEBYTECODE="1")
     # Output streams straight to the terminal; main.py writes config.json,
-    # log.h5 and the checkpoints itself.
-    raise SystemExit(subprocess.run(command, cwd=ROOT, env=environment).returncode)
+    # log.h5 and the checkpoints itself. The child starts above normal priority
+    # so training is not starved by whatever else is running.
+    ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000
+    flags = ABOVE_NORMAL_PRIORITY_CLASS if sys.platform == "win32" else 0
+    raise SystemExit(subprocess.run(command, cwd=ROOT, env=environment,
+                                    creationflags=flags).returncode)
 
 
 if __name__ == "__main__":
