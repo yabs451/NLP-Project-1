@@ -82,7 +82,7 @@ parameters are equal. The 55 intermediate checkpoints of each model were **not**
 compared against each other; the equality above covers the final parameters and
 the two endpoint files.
 
-Every measured quantity is flat across the chain:
+Every quantity we measured is flat across the chain:
 
 ![across generations](../results/base_task/recursive/generation_comparison.png)
 
@@ -136,9 +136,11 @@ examined. Denser checkpoints exist on disk if a finer scan is wanted.
 
 ## Interpretation
 
-**The chain was stable: nothing changed across five generations.** The
-experiment therefore did not establish whether circuit function weakens before
-accuracy, because neither declined.
+**The chain was stable: none of the quantities we measured changed across
+generations 0–4.** That covers the final parameters wherever we compared them,
+the development scores, the two attention measures and the four head ablations —
+not every property of these models. The experiment therefore did not establish
+whether circuit function weakens before accuracy, because neither declined.
 
 The reason is specific to how this chain was run. The input construction, the
 data order, the initialisation and the optimisation were all held fixed across

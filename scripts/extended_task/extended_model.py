@@ -4,7 +4,7 @@ The model keeps the authors' two-layer attention-only backbone and their symbol
 features unchanged. The only addition is a two-way output head that picks which
 of the two context symbols comes next.
 
-Task and design decisions: findings/03_extended_task_recursion.md
+Task and design decisions: findings/05_label_generation_strategies.md
 """
 import copy
 from pathlib import Path

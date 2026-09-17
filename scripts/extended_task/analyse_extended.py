@@ -7,7 +7,7 @@ comparison across conditions.
 
 Generation 0 is shared, so it is analysed once and reused by every condition.
 
-Results are discussed in findings/03_extended_task_recursion.md
+Results are discussed in findings/05_label_generation_strategies.md
 
 Usage (from the project root):
   .venv/Scripts/python.exe scripts/extended_task/analyse_extended.py --condition label_argmax
@@ -24,6 +24,7 @@ import extended_model as extended
 import run_extended as pipeline
 
 import equinox as eqx
+import h5py
 import jax
 import jax.numpy as jnp
 import matplotlib
@@ -91,6 +92,26 @@ def attention_measures(model, dev, key):
     return previous_token, induction
 
 
+def generated_continuation_scores(model, dev, key):
+    """Score the continuation the model generates for itself, autoregressively.
+
+    Teacher forcing hands each position the correct earlier tokens; here the
+    model conditions on what it actually produced, which is how a parent builds
+    its successor's data. Decoding is the same in every condition — argmax
+    labels, a temperature-1 symbol sample — because a condition's temperature
+    belongs to data generation, not to evaluation.
+    """
+    symbol_key, label_key = jax.random.split(key)
+    query, choice, following = extended.generate_continuation(
+        model, dev["symbols"], dev["labels"][:, :2], symbol_key, label_key)
+    true_next = jnp.take_along_axis(dev["labels"][:, :2], choice[:, None], axis=1)[:, 0]
+    return {
+        "generated_query_label_accuracy": float(jnp.mean(query == dev["labels"][:, 2])),
+        "generated_next_label_accuracy": float(jnp.mean(following == true_next)),
+        "generated_chose_context_position_0": float(jnp.mean(choice == 0)),
+    }
+
+
 def ablate(model, dev, layer, head, key):
     """Score the model with one head's value vectors zeroed.
 
@@ -136,19 +157,24 @@ def analyse_generation(folder, opts, dev):
     final = pipeline.load_model(folder, available[-1], opts)
     previous_token, induction = attention_measures(final, dev, key)
     scores = pipeline.score_dev(final, dev, key)
+    generated = generated_continuation_scores(final, dev, key)
 
     # Heads are picked from this model's own scores, never inherited.
     induction_head = int(np.argmax(induction))
     previous_head = int(np.argmax(previous_token))
     intact = scores["query_label_accuracy"]
+    without_induction = ablate(final, dev, 1, induction_head, key)["query_label_accuracy"]
+    without_previous = ablate(final, dev, 0, previous_head, key)["query_label_accuracy"]
     ablations = {
         "intact_query_label_accuracy": intact,
+        # Head identities are recorded because each model picks its own: this is a
+        # descriptive comparison, not one fixed head tracked across models.
         "induction_head": induction_head,
         "previous_token_head": previous_head,
-        "query_accuracy_without_induction_head":
-            ablate(final, dev, 1, induction_head, key)["query_label_accuracy"],
-        "query_accuracy_without_previous_token_head":
-            ablate(final, dev, 0, previous_head, key)["query_label_accuracy"],
+        "query_accuracy_without_induction_head": without_induction,
+        "query_accuracy_without_previous_token_head": without_previous,
+        "induction_head_ablation_effect": intact - without_induction,
+        "previous_token_head_ablation_effect": intact - without_previous,
     }
 
     quality = json.loads((folder / "dataset_quality.json").read_text(encoding="utf-8"))
@@ -158,23 +184,25 @@ def analyse_generation(folder, opts, dev):
         "checkpoints_saved": len(available),
         "checkpoints_analysed": [int(i) for i in chosen],
         "final_dev_scores": scores,
+        "final_generated_scores": generated,
         "trajectory": trajectory,
         "previous_token_scores_layer0": previous_token.tolist(),
         "induction_scores_layer1": induction.tolist(),
         "ablations": ablations,
         "training_data_quality": quality,
-        "note": ("dev scores are teacher forced: each position is conditioned on the "
-                 "correct earlier continuation tokens. training_data_quality describes "
-                 "the autoregressively generated data this model was trained on."),
+        "note": ("final_dev_scores are teacher forced: each position is conditioned on "
+                 "the correct earlier continuation tokens. final_generated_scores let the "
+                 "model condition on its own output instead. training_data_quality "
+                 "describes the generated data this model was trained on."),
     }
     (folder / "analysis.json").write_bytes(json.dumps(summary, indent=2).encode("utf-8"))
     return summary
 
 
 def plot_chain(summaries, path):
-    """Three panels: performance, symbol behaviour, and attention measures."""
+    """Four panels: performance, symbol behaviour, attention measures, learning curves."""
     generations = [s["generation"] for s in summaries]
-    figure, axes = plt.subplots(1, 3, figsize=(15, 4.2))
+    figure, axes = plt.subplots(1, 4, figsize=(19, 4.2))
 
     axes[0].plot(generations, [s["final_dev_scores"]["query_label_accuracy"] for s in summaries],
                  marker="o", label="query label")
@@ -201,7 +229,19 @@ def plot_chain(summaries, path):
     axes[2].set_ylabel("attention measure")
     axes[2].set_title("Attention measures by generation")
 
-    for axis in axes:
+    # Within-training curves, from the metrics each run logged every 5,000 sequences.
+    for summary in summaries:
+        with h5py.File(common.ROOT / summary["run"] / "log.h5", "r") as handle:
+            axes[3].plot(handle["eval_iter"][:], handle["dev/query_label_accuracy"][:],
+                         lw=1.2, label="generation {}".format(summary["generation"]))
+    axes[3].axhline(0.2, color="grey", ls=":", lw=1)
+    axes[3].set_xlabel("training sequences")
+    axes[3].set_ylabel("teacher-forced query-label accuracy")
+    axes[3].set_title("Within-training curves")
+    axes[3].set_ylim(0, 1.05)
+    axes[3].legend(fontsize=7)
+
+    for axis in axes[:3]:
         axis.set_xlabel("generation")
         axis.set_xticks(generations)
         axis.legend(fontsize=7)
@@ -229,7 +269,8 @@ def summarise_condition(condition, opts, dev):
     summaries, label_rule = [], None
     for folder in chain_folders(condition):
         record = folder / "analysis.json"
-        if record.exists():
+        if record.exists() and "final_generated_scores" in json.loads(
+                record.read_text(encoding="utf-8")):
             summary = json.loads(record.read_text(encoding="utf-8"))
             summary["run"] = str(folder.relative_to(common.ROOT))
             # Read the quality record fresh: it is the source of truth, and the
@@ -254,8 +295,9 @@ def summarise_condition(condition, opts, dev):
         "question": ("Does query-label performance, generated-symbol behaviour or the "
                      "attention measures change across extended-task generations?"),
         "evaluator": str(common.DEV_EVALUATOR_FILE.relative_to(common.ROOT)),
-        "evaluation": ("teacher forced, identical for both conditions; the generated-data "
-                       "columns come from autoregressive generation"),
+        "evaluation": ("teacher forced, identical for every condition; generated_continuation "
+                       "instead lets the model condition on its own output, and the "
+                       "training_data_quality columns describe the data the parent produced"),
         "head_selection": "each model's heads chosen from its own final scores",
         "checkpoints_saved_per_generation": summaries[0]["checkpoints_saved"],
         "checkpoints_analysed_per_generation": summaries[0]["checkpoints_analysed"],
@@ -273,11 +315,15 @@ def condition_row(summary):
     scores = summary["final_dev_scores"]
     return {
         "generation": summary["generation"],
+        # Teacher forced: every position sees the correct earlier tokens.
         "query_label_accuracy": scores["query_label_accuracy"],
         "query_label_loss": scores["query_label_loss"],
         "symbol_loss": scores["symbol_loss"],
         "symbol_prefers_first": scores["symbol_prefers_first"],
         "next_label_accuracy": scores["next_label_accuracy"],
+        "next_label_loss": scores["next_label_loss"],
+        # Generated: the model conditions on its own earlier output.
+        "generated_continuation": summary["final_generated_scores"],
         "strongest_induction_score": max(summary["induction_scores_layer1"]),
         "strongest_previous_token_score": max(summary["previous_token_scores_layer0"]),
         "ablations": summary["ablations"],
@@ -286,31 +332,52 @@ def condition_row(summary):
 
 
 def plot_conditions(comparisons, path):
-    """Both conditions on the same axes: accuracy, target errors, circuit measures."""
-    figure, axes = plt.subplots(1, 3, figsize=(15, 4.2))
+    """Every condition on shared axes, so the trajectories can be compared.
+
+    Six panels: teacher-forced accuracy and loss, the corruption of the training
+    targets, the two attention measures, and the measured effect of removing each
+    model's strongest induction head.
+    """
+    figure, axes = plt.subplots(2, 3, figsize=(16, 8.4))
+    axes = axes.ravel()
     for comparison in comparisons:
         rows = comparison["generations"]
         generations = [r["generation"] for r in rows]
         label = comparison["condition"]
         axes[0].plot(generations, [r["query_label_accuracy"] for r in rows],
                      marker="o", label=label)
+        axes[1].plot(generations, [r["query_label_loss"] for r in rows],
+                     marker="o", label=label)
         # Generation 0 trains on correct data, so it has no generated-target errors.
-        axes[1].plot(generations[1:],
+        axes[2].plot(generations[1:],
                      [r["training_data_quality"]["query_label_error_rate"] for r in rows[1:]],
                      marker="o", label=label)
-        axes[2].plot(generations, [r["strongest_induction_score"] for r in rows],
+        axes[3].plot(generations, [r["strongest_induction_score"] for r in rows],
+                     marker="o", label=label)
+        axes[4].plot(generations, [r["strongest_previous_token_score"] for r in rows],
+                     marker="o", label=label)
+        axes[5].plot(generations,
+                     [r["ablations"]["induction_head_ablation_effect"] for r in rows],
                      marker="o", label=label)
 
     axes[0].axhline(0.2, color="grey", ls=":", lw=1, label="chance over 5 labels")
     axes[0].set_ylabel("teacher-forced query-label accuracy")
-    axes[0].set_title("Query-label accuracy by generation")
+    axes[0].set_title("Query-label accuracy")
     axes[0].set_ylim(0, 1.05)
-    axes[1].set_ylabel("wrong query labels in the training data")
-    axes[1].set_title("Generated-target error rate")
-    axes[2].set_ylabel("strongest induction score (L1)")
-    axes[2].set_title("Induction attention measure")
+    axes[1].set_ylabel("query-label loss (nats)")
+    axes[1].set_title("Query-label loss")
+    axes[2].set_ylabel("wrong query labels in the training data")
+    axes[2].set_title("Corruption of the generated targets")
+    axes[3].set_ylabel("strongest induction score (L1)")
+    axes[3].set_title("Induction attention measure")
+    axes[4].set_ylabel("strongest previous-token score (L0)")
+    axes[4].set_title("Previous-token attention measure")
+    axes[5].axhline(0, color="black", lw=0.5)
+    axes[5].set_ylabel("accuracy lost when the head is silenced")
+    axes[5].set_title("Induction-head ablation effect")
     for axis in axes:
         axis.set_xlabel("generation")
+        axis.set_xticks([r["generation"] for r in comparisons[0]["generations"]])
         axis.legend(fontsize=7)
     figure.tight_layout()
     figure.savefig(path, dpi=150)
@@ -338,16 +405,19 @@ def main():
                 comparisons.append(json.loads(table.read_text(encoding="utf-8")))
         if len(comparisons) < 2:
             raise SystemExit("Need at least two analysed conditions to compare.")
-        (pipeline.RESULTS / "condition_comparison.json").write_bytes(json.dumps({
+        (pipeline.RECURSIVE / "condition_comparison.json").write_bytes(json.dumps({
             "question": ("How does the synthetic-label generation strategy affect "
-                         "performance and the attention measures across generations?"),
+                         "performance degradation and induction-circuit function "
+                         "across recursive generations?"),
             "shared_generation_0": str(pipeline.GENERATION_0.relative_to(common.ROOT)),
             "evaluation": "identical fixed development questions and decoding for both conditions",
-            "note": ("the conditions differ in label strategy and, for the sampled "
-                     "condition, temperature; this does not isolate temperature alone"),
+            "note": ("argmax against sampling compares generation strategies; "
+                     "temperatures 1, 3 and 5 compare temperatures within sampling. "
+                     "One chain per condition from a common parent, not independent "
+                     "replications"),
             "conditions": comparisons,
         }, indent=2).encode("utf-8"))
-        plot_conditions(comparisons, pipeline.RESULTS / "condition_comparison.png")
+        plot_conditions(comparisons, pipeline.RECURSIVE / "condition_comparison.png")
         for comparison in comparisons:
             print("\n" + comparison["condition"])
             for row in comparison["generations"]:
@@ -356,8 +426,8 @@ def main():
                     row["generation"], row["query_label_accuracy"],
                     row["strongest_induction_score"],
                     quality.get("query_label_errors", 0) if row["generation"] else "-"))
-        print("\nwritten:", (pipeline.RESULTS / "condition_comparison.json").relative_to(common.ROOT))
-        print("written:", (pipeline.RESULTS / "condition_comparison.png").relative_to(common.ROOT))
+        print("\nwritten:", (pipeline.RECURSIVE / "condition_comparison.json").relative_to(common.ROOT))
+        print("written:", (pipeline.RECURSIVE / "condition_comparison.png").relative_to(common.ROOT))
         return
 
     if args.condition is None:

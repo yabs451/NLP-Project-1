@@ -4,7 +4,7 @@ Trains a 6 x 3 grid (six learning rates, three initialisation seeds) on the
 original task and scores each final checkpoint on the fixed 1,000-question
 development set.
 
-Method and results: findings/03_learning_rate_search.md
+Method and results: findings/01_learning_rate_search.md
 
 Usage (from the project root):
   .venv/Scripts/python.exe scripts/base_task/tune_learning_rate.py

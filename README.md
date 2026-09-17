@@ -1,14 +1,18 @@
 # Interpretability of model collapse in induction circuits
 
 An Honours NLP research project. We train a small transformer on an in-context
-learning task, then retrain it repeatedly on **its own predictions**, and ask a
-mechanistic question:
+learning task, then retrain it repeatedly on **its own predictions**, and ask two
+questions:
 
-> Does the induction circuit inside the model weaken across recursive
-> generations *before* its overall accuracy declines?
+> How does the way a parent turns its predictions into training targets — the
+> synthetic-label generation strategy — affect performance degradation and
+> induction-circuit function across recursive generations?
 
-This is an initial investigation over one chain of five models. Degradation is
-not assumed.
+> Do attention-pattern measures, measured head-ablation effects and predictive
+> performance change on the same schedule, or on different ones?
+
+Each condition is a single chain of five models from a shared parent, not a set
+of independent replications. Degradation is not assumed.
 
 Built on [Singh et al. (2024), *What needs to go right for an induction
 head?*](https://arxiv.org/abs/2404.07129) and their
@@ -41,21 +45,43 @@ the matching symbol.
 
 ## What is implemented
 
-- A **learning-rate search** for the base task, over six rates × three
+- A **learning-rate search for the base task**, over six rates × three
   initialisation seeds.
 - A **base-task recursive chain** of five models at the selected rate:
   generation 0 trained on the real task, then generations 1–4 each trained on
   the previous generation's own answers.
-- **Two extended-task recursive chains** of five models each at the authors'
-  original learning rate, sharing one generation 0 and differing only in how the
-  parent turns its label logits into training targets: argmax, or sampling at
-  temperature 3. Both are exploratory, before any tuning of that task.
-- Analysis of accuracy, loss, previous-token and induction attention measures,
-  head ablations, generated-symbol behaviour, and comparisons across each
-  chain.
+- A **separate learning-rate search for the extended task**, over the same six
+  rates × three seeds, selecting the rate used by everything below.
+- **Four extended-task recursive chains** of five models each at that selected
+  rate. All four share **one** generation 0 and differ only in how the parent
+  turns its label logits into training targets: argmax, or sampling at
+  temperature 1, 3 or 5.
+- Analysis of accuracy and loss at each output position, teacher-forced and
+  self-generated continuations, the corruption of the generated targets,
+  next-symbol position and identity behaviour, previous-token and induction
+  attention measures, single-head ablations, within-training curves, and
+  comparisons within and across conditions.
 
 Generation 0 is the original model. "N additional generations" means N
 successors, so five models means generation 0 plus four successors.
+
+## The write-ups
+
+`findings/` holds the scientific record, numbered in the order the work was done:
+
+| Finding | Question |
+| --- | --- |
+| `01_learning_rate_search.md` | Which learning rate suits the **base** task, over six rates × three seeds? |
+| `02_recursive_generations.md` | What happens to the base task across five recursive generations? |
+| `04_extended_task_tuning.md` | Which learning rate suits the **extended** task, over the same grid? |
+| `05_label_generation_strategies.md` | How does the label-generation strategy affect degradation and the induction-circuit measures across generations? |
+
+Finding 03 reported an earlier extended-task run made before that task had been
+tuned; finding 05 supersedes it at the selected learning rate, so 03 was retired
+and the number is not reused.
+
+Each finding quotes the numbers it relies on, so it can be read without `results/`
+in hand.
 
 ## Whose code is whose
 
@@ -86,8 +112,9 @@ NLP-Project-1/
 │   │   └── analyse_runs.py          per-run analysis and the cross-generation comparison
 │   └── extended_task/
 │       ├── extended_model.py        the backbone plus a two-way symbol head
-│       ├── run_extended.py          trains the whole extended chain
-│       └── analyse_extended.py      per-generation analysis and the comparison
+│       ├── tune_extended.py         the extended task's learning-rate search
+│       ├── run_extended.py          trains one extended chain per condition
+│       └── analyse_extended.py      per-generation analysis and the comparisons
 ├── findings/                 the scientific write-ups
 ├── results/                  everything the scripts generate (not distributed)
 └── upstream/icl-dynamics/    the authors' code, unmodified
@@ -103,8 +130,9 @@ NLP-Project-1/
 | `run_recursive.py` | For each successor: generates a million training examples from the parent's own answers, then trains a freshly initialised student on them. |
 | `analyse_runs.py` | Per run: learning curves, per-head attention measures across checkpoints, an attention map, head ablations. With `--compare`: the across-generation table and figure. |
 | `extended_model.py` | The extended task's model and losses: the authors' backbone unchanged, plus a two-way head that picks the next symbol. Also generates a continuation autoregressively. |
-| `run_extended.py` | Trains an extended chain: generation 0 on correct continuations, then each successor on continuations its parent generated. `--label-strategy` and `--label-temperature` select the label-generation condition. |
-| `analyse_extended.py` | Per generation: development scores at all three output positions, attention measures, single-head ablations. `--condition` writes one chain's table and figure; `--compare-conditions` writes the comparison across conditions. |
+| `tune_extended.py` | Trains the extended task's learning-rate grid on correct continuations, applies the selection rule, writes the results table, selection record and figure. The recursive chains read the selected rate from that record. |
+| `run_extended.py` | Trains one extended chain: generation 0 on correct continuations, then each successor on continuations its parent generated. `--label-strategy` and `--label-temperature` select the condition; generation 0 is trained once and shared by all of them. |
+| `analyse_extended.py` | Per generation: development scores at all three output positions teacher-forced and self-generated, attention measures, single-head ablations. `--condition` writes one chain's table and figure; `--compare-conditions` writes the comparison across conditions. |
 
 ## Setup
 
@@ -198,60 +226,84 @@ Candidate heads are selected from **each model's own final scores**, never
 inherited from another generation; the comparison records whether the same head
 indices came out anyway.
 
-### 6. Run the extended task
+### 6. Tune the extended task
+
+```powershell
+.\.venv\Scripts\python.exe scripts/extended_task/tune_extended.py
+```
+
+The same 6 × 3 grid as the base task, but trained on the **extended** task with
+correct continuations. Selection uses final query-label accuracy on the
+development set, averaged over seeds 5, 6 and 7; symbol loss and following-label
+accuracy are recorded alongside but do not enter the rule.
+
+**Selected: 1e-3**, again the best *among the tested rates at this budget*, again
+at the top of the tested range. The grid was not expanded in response. Every
+recursive command below reads this rate from
+`results/extended_task/tuning/selection.json`, so the chains cannot drift from
+the search that justified them.
+
+All 18 candidates share one original-task training set, and finished candidates
+are skipped, so the command is safe to stop and restart.
+
+### 7. Run the four recursive conditions
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --generations 4
+.\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --label-strategy sample --label-temperature 1 --generations 4
 .\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --label-strategy sample --label-temperature 3 --generations 4
+.\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --label-strategy sample --label-temperature 5 --generations 4
 ```
 
-The first command trains generation 0 on correct continuations and then the
-**argmax** chain; the second reuses that same generation 0 and trains the
-**temperature-3** chain. Generation 0 is trained once and shared. Finished
-generations are skipped, so either command is safe to restart, and the two
-conditions write to separate folders so they cannot overwrite each other.
+Run them in order. The first trains **generation 0** on correct continuations and
+then the argmax chain; the other three reuse that same generation 0 and train
+their own generations 1–4. Generation 0 is trained once and shared by all four
+conditions.
+
+Finished generations are skipped, each condition writes to its own folder, and a
+run trained at a different learning rate is refused rather than silently reused —
+so the commands are safe to restart and the conditions cannot be mixed up.
 
 **How a parent generates its successor's training data.** One token at a time,
 each step conditioned on the tokens the parent itself produced:
 
 1. the query label,
 2. the next symbol, always **sampled** from its two-way distribution at
-   temperature 1,
+   temperature 1, in every condition,
 3. the following label.
 
 The two **labels** are where the conditions differ:
 
 - **`label_argmax`** — each label is the single most likely one.
-- **`label_sampling_temperature_3`** — each label is drawn from
-  `softmax(logits / 3)`. Dividing the logits by 3 flattens the distribution, so
-  the parent often writes down a label it did not think most likely. All five
-  labels stay eligible.
+- **`label_sampling_temperature_1`**, **`_3`**, **`_5`** — each label is drawn
+  from `softmax(logits / T)`. Dividing the logits by `T` flattens the
+  distribution, so the higher the temperature the more often the parent writes
+  down a label it did not think most likely. All five labels stay eligible at
+  every temperature.
 
 Mistakes are kept, and correct answers are never mixed back in. Opening contexts
-and queries always come from the original task generator, in both conditions.
-Because generation is autoregressive, a sampled query label is fed back in
-before the symbol is chosen, so the symbol probabilities differ between the two
-conditions too.
+and queries always come from the original task generator, in every condition.
+Because generation is autoregressive, a sampled query label is fed back in before
+the symbol is chosen, so the symbol probabilities differ between conditions even
+though the symbol rule is identical.
 
 Temperature applies **only** when generating a successor's training data: the
 training loss, the evaluation decoding and generation 0's data are unchanged.
 
-Both chains use the authors' original learning rate of 1e-5, **not** the 1e-3
-selected for the base task. They are exploratory runs before tuning the extended
-task, so differences from the base-task chain cannot be attributed to the task
-change alone.
-
-Then analyse each condition and compare them:
+### 8. Analyse the extended task
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_argmax
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_1
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_3
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_5
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --compare-conditions
 ```
 
-Both conditions are scored on the same fixed development questions with the same
-decoding, and a generation that has already been analysed is reused rather than
-re-measured.
+Every condition is scored on the same fixed development questions with the same
+decoding and the same checkpoint- and head-selection rules, and a generation that
+has already been analysed is reused rather than re-measured. The final command
+reads the four tables and writes the comparison.
 
 ## What gets generated
 
@@ -264,10 +316,11 @@ repository — regenerate it by following the steps in order.
 | `results/base_task/tuning/` | one folder per tuning candidate, plus `results.json` (all 18 candidates), `selection.json` and `learning_rate_comparison.png` |
 | `results/base_task/recursive/generation_<n>/` | one folder per generation |
 | `results/base_task/recursive/generation_comparison.json` / `.png` | the across-generation comparison |
-| `results/extended_task/generation_0/` | the shared extended-task generation 0 |
-| `results/extended_task/experiments/<condition>/generation_<n>/` | one folder per generation, per condition |
-| `results/extended_task/experiments/<condition>/generation_comparison.json` / `.png` | that condition's chain |
-| `results/extended_task/condition_comparison.json` / `.png` | the two conditions side by side |
+| `results/extended_task/tuning/` | one folder per tuning candidate, the shared original-task training set, plus `results.json` (all 18 candidates), `selection.json` and `learning_rate_comparison.png` |
+| `results/extended_task/recursive/generation_0/` | the generation 0 shared by all four conditions |
+| `results/extended_task/recursive/experiments/<condition>/generation_<n>/` | one folder per generation, per condition |
+| `results/extended_task/recursive/experiments/<condition>/generation_comparison.json` / `.png` | that condition's chain |
+| `results/extended_task/recursive/condition_comparison.json` / `.png` | the four conditions side by side |
 
 Inside a generation folder:
 
@@ -280,8 +333,8 @@ Inside a generation folder:
 | `generation_metadata.json` | successors only: parent checkpoint, generation rule, how good the parent's answers were, and worked examples |
 | `analysis/` | base task: `analysis.json` plus `curves.png`, `head_measures.png`, `attention_example.png` |
 | `training_data.h5` | extended task: the opening contexts as indices plus the three continuation targets, and the correct answers kept for scoring |
-| `dataset_quality.json` | extended task: how far the generated continuations departed from the correct ones (as counts and rates), and which context position was chosen |
-| `analysis.json` | extended task: development scores at all three positions, attention measures, ablations |
+| `dataset_quality.json` | extended task: how far the generated continuations departed from the correct ones (as counts **and** rates), which context position was chosen, and how the chosen symbol identities were spread |
+| `analysis.json` | extended task: development scores at all three positions both teacher-forced and self-generated, attention measures per head, the selected heads and their ablation effects, and the measures across the analysed checkpoints |
 
 Two older files under `results/base_task/tuning/` — `evaluator_comparison.json`
 and `evaluator_size_comparison.png` — are retained history from a one-off check
@@ -297,31 +350,46 @@ land on the next batch boundary, so the early ones are saved at 1,024 / 2,016 /
 5,024 / 10,016.
 
 Tuning candidates instead save only the **first and last** checkpoint, because
-only their final models are ever compared. That keeps the 18-model search small.
+only their final models are ever compared. That keeps each 18-model search small.
 It also means a tuning candidate cannot support mechanistic analysis, which is
-why generation 0 is trained separately rather than reused from the search.
+why generation 0 is trained separately rather than reused from the search — in
+both tasks.
+
+Analysis does not read all 55. It measures a fixed, roughly log-spaced subset of
+**12** of them, by the same rule in every generation and every condition, so the
+analysed points line up; each `analysis.json` lists exactly which ones it used.
 
 Reducing snapshots never reduces the learning curves: those come from `log.h5`,
 which is written at every evaluation point regardless.
 
 ## Limitations
 
-- **One chain, controlled seeds.** Five models in a single recursive line, all
-  sharing an initialisation seed and training-data seed. That isolates the
-  effect of the changing targets, but it is not a sample of independent chains.
-- **One learning rate, one budget.** 1e-3 was the best of six rates at 31,250
-  updates. It sits at the edge of the tested range.
+- **Controlled seeds.** Every chain is a single recursive line whose models share
+  an initialisation seed and training-data seed. That isolates the effect of the
+  changing targets, but it is not a sample of independent chains.
 - **Attention patterns are not causal claims.** A high induction score for a
-  head does not establish that the head is causally important. Single-head
-  ablation measures the effect of that one intervention on one evaluator; it
-  does not measure the importance of the circuit as a whole.
+  head says where it attends, not what it contributes to the output. Single-head
+  zero-ablation measures the effect of that one intervention on one evaluator; a
+  small effect does not establish redundancy, and no combination of heads was
+  silenced.
+- **Attention is sampled sparsely.** The attention measures and ablations are
+  computed at 12 of the 55 checkpoints, while accuracy and loss are logged 201
+  times per run. Nothing is claimed about what happened in between.
 - **Degradation across generations and development within training are separate
-  questions.** If two measures move together, nothing here can say which moved
-  first.
-- **The extended-task chain is untuned.** It uses the authors' 1e-5, while the
-  base-task chain uses the 1e-3 selected by the search. Differences between the
-  two chains therefore reflect both the task and the learning rate, and cannot
-  be attributed to the extended task alone.
+  questions.** Where two measures move within the same observed interval, nothing
+  here establishes which moved first.
+- **Every successor starts from fresh weights.** No model inherits its parent's
+  parameters, so what passes between generations is the training data, not a
+  trained circuit.
+- **Argmax versus sampling and temperature versus temperature are different
+  comparisons.** Argmax against any sampling condition compares generation
+  strategies; temperatures 1, 3 and 5 compare temperatures within sampling. An
+  argmax-to-temperature-3 difference does not isolate temperature.
+- **One chain per condition from a shared parent.** Four chains that share
+  generation 0 are not four independent replications, and conclusions have to be
+  read at that scope.
+- **Both learning-rate searches stop at the edge.** 1e-3 was best of six rates at
+  31,250 updates in each search, and sits at the top of both tested ranges.
 - The reserved 100 final-test classes have never been scored.
 
 ## Attribution

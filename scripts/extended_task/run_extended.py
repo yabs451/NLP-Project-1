@@ -6,13 +6,13 @@ Opening contexts always come from the authors' original task generator.
 
 `--label-strategy` selects how the parent turns label logits into training
 targets: argmax, or sampling at `--label-temperature`. The next symbol is always
-sampled at temperature 1.
+sampled at temperature 1. The learning rate comes from the extended-task search.
 
-Method and results: findings/03_extended_task_recursion.md
+Method and results: findings/05_label_generation_strategies.md
 
-Usage (from the project root):
+Usage (from the project root), one command per condition:
   .venv/Scripts/python.exe scripts/extended_task/run_extended.py
-  .venv/Scripts/python.exe scripts/extended_task/run_extended.py --label-strategy sample --label-temperature 3
+  .venv/Scripts/python.exe scripts/extended_task/run_extended.py --label-strategy sample --label-temperature 1
 """
 import argparse
 from functools import partial
@@ -33,10 +33,13 @@ import main_utils
 import samplers
 
 RESULTS = common.ROOT / "results" / "extended_task"
+TUNING = RESULTS / "tuning"
+SELECTION_FILE = TUNING / "selection.json"
+RECURSIVE = RESULTS / "recursive"
 # Generation 0 is trained on real data and is shared by every condition; each
 # condition's successors live in their own experiment folder.
-GENERATION_0 = RESULTS / "generation_0"
-EXPERIMENTS = RESULTS / "experiments"
+GENERATION_0 = RECURSIVE / "generation_0"
+EXPERIMENTS = RECURSIVE / "experiments"
 
 # Seeds for the parts of the extended task that the base task has no equivalent
 # for. Kept distinct from the authors' init (5), train (0) and eval (1) seeds so
@@ -57,6 +60,18 @@ def checkpoint_schedule(train_iters, batch_size):
                            + list(range(0, train_iters + 1, 20000))))
     return sorted({(value + batch_size - 1) // batch_size * batch_size
                    for value in requested})
+
+
+def selected_learning_rate():
+    """The rate chosen by the extended-task search, read from its selection record.
+
+    Reading it rather than hard-coding it means the recursive chain cannot drift
+    from the search that justified it.
+    """
+    if not SELECTION_FILE.exists():
+        raise SystemExit("Missing {}. Run scripts/extended_task/tune_extended.py "
+                         "first.".format(SELECTION_FILE.relative_to(common.ROOT)))
+    return float(json.loads(SELECTION_FILE.read_text())["selected_learning_rate"])
 
 
 def draw_opening_contexts(opts, splits, count):
@@ -161,8 +176,22 @@ def build_successor_dataset(opts, splits, parent, features, count,
 
 
 def dataset_quality(dataset):
-    """How closely a generated dataset matches the correct continuations."""
+    """How closely a generated dataset matches the correct continuations.
+
+    Errors are reported as counts as well as rates, because at low error rates
+    rounding hides a real and growing number of wrong targets.
+
+    Two different things are measured about the next symbol and kept apart:
+    *which context position* the parent preferred, and *which symbol identities*
+    ended up in the data. The identity spread is summarised by how many classes
+    appear, the largest single class share, and the Shannon entropy of the class
+    distribution in nats; 50 evenly used training classes would give ln 50 =
+    3.912.
+    """
     choice = dataset["symbol_choice"]
+    chosen_class = dataset["class_idxs"][np.arange(len(choice)), choice]
+    counts = np.bincount(chosen_class)
+    present = counts[counts > 0] / len(choice)
     query_errors = int(np.sum(dataset["labels"][:, 2] != dataset["true_query_label"]))
     next_errors = int(np.sum(dataset["next_label"] != dataset["true_next_label"]))
     return {
@@ -171,11 +200,14 @@ def dataset_quality(dataset):
         "query_label_error_rate": query_errors / len(choice),
         "next_label_errors": next_errors,
         "next_label_error_rate": next_errors / len(choice),
+        # Position preference: which of the two context slots was copied.
         "chose_context_position_0": float(np.mean(choice == 0)),
-        "distinct_next_symbol_classes": int(len(np.unique(
-            dataset["class_idxs"][np.arange(len(choice)), choice]))),
-        "next_symbol_class_counts_top5": np.bincount(
-            dataset["class_idxs"][np.arange(len(choice)), choice]).argsort()[-5:][::-1].tolist(),
+        # Symbol-identity spread: a different question from position preference.
+        "distinct_next_symbol_classes": int(len(present)),
+        "largest_next_symbol_class_share": float(present.max()),
+        "next_symbol_class_entropy_nats": float(-np.sum(present * np.log(present))),
+        "generated_label_counts": np.bincount(dataset["labels"][:, 2].astype(np.int64),
+                                              minlength=5).tolist(),
     }
 
 
@@ -211,16 +243,22 @@ def score_dev(model, dev, key):
             for metric in totals[0]}
 
 
-def train_generation(opts, folder, dataset, features, dev):
-    """One pass over the dataset, saving the 55 checkpoints and the metric log."""
+def train_generation(opts, folder, dataset, features, dev, checkpoints=None):
+    """One pass over the dataset, saving checkpoints and the metric log.
+
+    `checkpoints` is the list of sequence counts to save at; the default is the
+    agreed 55-point mechanistic schedule. Tuning candidates pass the two
+    endpoints instead, because only their final model is compared.
+    """
     model = extended.build_model(opts, SYMBOL_HEAD_INIT_SEED)
     optimizer = main_utils.get_optimizer_from_opts(opts)
     opt_state = optimizer.init(eqx.filter(model, eqx.is_array))
     _, train_model_seed = common.training_seeds(opts)
 
-    checkpoints = folder / "checkpoints"
-    checkpoints.mkdir(parents=True, exist_ok=True)
-    schedule = set(checkpoint_schedule(opts.train_iters, opts.train_bs))
+    checkpoint_folder = folder / "checkpoints"
+    checkpoint_folder.mkdir(parents=True, exist_ok=True)
+    schedule = set(checkpoints if checkpoints is not None
+                   else checkpoint_schedule(opts.train_iters, opts.train_bs))
 
     class_idxs = jnp.asarray(dataset["class_idxs"], jnp.int32)
     exemplar_idxs = jnp.asarray(dataset["exemplar_idxs"], jnp.int32)
@@ -233,7 +271,7 @@ def train_generation(opts, folder, dataset, features, dev):
     dev_log, eval_iters = [], []
 
     def save(sequences):
-        eqx.tree_serialise_leaves(checkpoints / "{:011d}.eqx".format(sequences), model)
+        eqx.tree_serialise_leaves(checkpoint_folder / "{:011d}.eqx".format(sequences), model)
 
     for sequences in range(0, opts.train_iters, opts.train_bs):
         if sequences in schedule:
@@ -302,6 +340,15 @@ def write_config(folder, opts, generation, parent_folder, label_strategy,
         json.dumps(config, indent=2, default=str).encode("utf-8"))
 
 
+def require_matching_rate(folder, learning_rate):
+    """Refuse to reuse a finished run that was trained at a different rate."""
+    config = json.loads((Path(folder) / "config.json").read_text(encoding="utf-8"))
+    if float(config["lr"]) != learning_rate:
+        raise SystemExit("{} was trained at lr {:g}, but this chain runs at {:g}. Move it "
+                         "aside before continuing.".format(folder, float(config["lr"]),
+                                                           learning_rate))
+
+
 def condition_name(label_strategy, label_temperature):
     """Folder name for a condition, e.g. label_argmax or label_sampling_temperature_3."""
     if label_strategy == "argmax":
@@ -321,11 +368,12 @@ def main():
     args = parser.parse_args()
     common.use_above_normal_priority()
 
-    # The authors' published settings, at their original learning rate. Nothing
-    # is tuned for the extended task, and nothing but label generation differs
-    # between conditions.
+    # The authors' published settings, at the learning rate the extended-task
+    # search selected. Nothing but label generation differs between conditions.
     opts = common.baseline_options()
     opts.model_output_classes = opts.fs_relabel
+    opts.lr = selected_learning_rate()
+    print("learning rate:", "{:g}".format(opts.lr), flush=True)
     features = common.load_features()
     splits = main_utils.get_splits_from_opts(opts, features.shape)
     dev = load_dev_set(opts)
@@ -336,6 +384,7 @@ def main():
 
     # Generation 0 is shared: train it once, then reuse it for every condition.
     if (GENERATION_0 / "log.h5").exists():
+        require_matching_rate(GENERATION_0, opts.lr)
         parent_model = load_final_model(GENERATION_0, opts)
     else:
         GENERATION_0.mkdir(parents=True, exist_ok=True)
@@ -351,6 +400,9 @@ def main():
     for generation in range(1, args.generations + 1):
         folder = condition / "generation_{}".format(generation)
         if (folder / "log.h5").exists():
+            # Refuse to build on a generation trained at a different rate rather
+            # than silently mixing settings within one chain.
+            require_matching_rate(folder, opts.lr)
             print("generation", generation, "already trained; loading it", flush=True)
             parent_model = load_final_model(folder, opts)
             parent_folder = folder
