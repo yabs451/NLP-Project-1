@@ -11,7 +11,7 @@ Results are discussed in findings/05_label_generation_strategies.md
 
 Usage (from the project root):
   .venv/Scripts/python.exe scripts/extended_task/analyse_extended.py --condition label_argmax
-  .venv/Scripts/python.exe scripts/extended_task/analyse_extended.py --compare-conditions
+  .venv/Scripts/python.exe scripts/extended_task/analyse_extended.py --compare-family label
 """
 import argparse
 import json
@@ -199,6 +199,122 @@ def analyse_generation(folder, opts, dev):
     return summary
 
 
+def label_breakdown(generated, correct, context_labels):
+    """Where a generated label went, judged against the original context mapping.
+
+    The two context labels always differ in these datasets, so the three
+    outcomes are exclusive and exhaustive: the correct label, the other label
+    present in the context, or a label from outside the context entirely.
+
+    generated, correct: [n]. context_labels: [n, 2].
+    Returns counts, proportions, both label histograms, and the 5x5 table of
+    correct label against generated label.
+    """
+    other = np.where(context_labels[:, 0] == correct, context_labels[:, 1],
+                     context_labels[:, 0])
+    is_correct = generated == correct
+    is_other = (~is_correct) & (generated == other)
+    total = len(generated)
+    table = np.zeros((5, 5), np.int64)
+    np.add.at(table, (correct.astype(np.int64), generated.astype(np.int64)), 1)
+    return {
+        "correct": int(is_correct.sum()),
+        "other_context_label": int(is_other.sum()),
+        "outside_context_labels": int(total - is_correct.sum() - is_other.sum()),
+        "correct_proportion": float(is_correct.mean()),
+        "other_context_label_proportion": float(is_other.mean()),
+        "outside_context_labels_proportion": float(1 - is_correct.mean() - is_other.mean()),
+        "generated_label_counts": np.bincount(generated.astype(np.int64), minlength=5).tolist(),
+        "correct_label_counts": np.bincount(correct.astype(np.int64), minlength=5).tolist(),
+        # Row = correct label, column = generated label.
+        "correct_vs_generated_counts": table.tolist(),
+    }
+
+
+def symbol_breakdown(class_idxs, symbol_choice, class_count):
+    """How often each training class was offered as a next symbol, and then chosen.
+
+    Both context slots are filled by the question generator, so a class chosen
+    often may simply have been offered often. `selection_rate` divides chosen by
+    offered; the intended coin flip gives 0.5 for every class. The per-class
+    arrays are kept at full length so a class that stopped being offered shows as
+    a zero rather than disappearing. Counting offers this way assumes the two
+    context classes differ, which holds in every row of these datasets.
+    """
+    chosen_class = class_idxs[np.arange(len(symbol_choice)), symbol_choice]
+    offered = (np.bincount(class_idxs[:, 0].astype(np.int64), minlength=class_count)
+               + np.bincount(class_idxs[:, 1].astype(np.int64), minlength=class_count)
+               )[:class_count]
+    chosen = np.bincount(chosen_class.astype(np.int64), minlength=class_count)[:class_count]
+    offered_share = offered / offered.sum()
+    share = chosen / chosen.sum()
+    seen = offered > 0
+    rate = np.where(seen, chosen / np.maximum(offered, 1), np.nan)
+    present = share[share > 0]
+    return {
+        "distinct_classes_offered": int(seen.sum()),
+        "distinct_classes_selected": int(np.sum(chosen > 0)),
+        "offered_counts_per_class": offered.tolist(),
+        "chosen_counts_per_class": chosen.tolist(),
+        "selection_rate_per_class": [None if np.isnan(v) else float(v) for v in rate],
+        "largest_offered_share": float(offered_share.max()),
+        "largest_class_share": float(share.max()),
+        # Availability-adjusted identity preference: 0.5 everywhere means the
+        # parent picked between the two offered symbols without favouring any.
+        "selection_rate_min": float(np.nanmin(rate)),
+        "selection_rate_max": float(np.nanmax(rate)),
+        "selection_rate_sd": float(np.nanstd(rate)),
+        "coin_flip_sd_reference": float(np.sqrt(0.25 / offered[seen].mean())),
+        "chosen_class_entropy_nats": float(-np.sum(present * np.log(present))),
+        "offered_class_entropy_nats": float(
+            -np.sum(offered_share[offered_share > 0] * np.log(offered_share[offered_share > 0]))),
+        "max_possible_entropy_nats": float(np.log(class_count)),
+    }
+
+
+def dataset_distributions(folder):
+    """What a parent actually generated, read from that generation's saved dataset.
+
+    Symbols and labels are reported separately: which symbol identities were
+    chosen once availability is accounted for, and where each of the two label
+    outputs went. Generation 0's dataset holds correct continuations and serves
+    as the reference.
+
+    Under context feedback four stages have to be kept apart, and this record
+    carries all four: the frequencies the parent generated and the sampling
+    weights derived from them (both taken from the run's `config.json`), then the
+    symbols actually offered in the child's contexts and the ones it selected
+    (both counted here).
+    """
+    config = json.loads((folder / "config.json").read_text(encoding="utf-8"))
+    with h5py.File(folder / "training_data.h5", "r") as handle:
+        class_idxs = handle["class_idxs"][:]
+        labels = handle["labels"][:]
+        symbol_choice = handle["symbol_choice"][:].astype(np.int64)
+        next_label = handle["next_label"][:]
+        true_query = handle["true_query_label"][:]
+        true_next = handle["true_next_label"][:]
+    feedback = config.get("context_feedback")
+    return {
+        "generation": int(config["generation"]),
+        "examples": int(len(symbol_choice)),
+        "next_symbol_temperature": config.get("next_symbol_temperature", 1.0),
+        "context_selection_temperature": config.get("context_selection_temperature"),
+        # Stages 1 and 2 of context feedback; absent when the questions came from
+        # the original task distribution.
+        "parent_generated_frequencies": None if feedback is None
+        else feedback["parent_generated_frequencies"],
+        "context_sampling_weights": None if feedback is None else feedback["sampling_weights"],
+        "chose_context_position_0": float(np.mean(symbol_choice == 0)),
+        # Stages 3 and 4: what was offered, and what was chosen.
+        "next_symbol": symbol_breakdown(class_idxs, symbol_choice,
+                                        int(config["class_split"][0])),
+        # labels[:, 2] is the generated query label; labels[:, :2] the context pair.
+        "query_label": label_breakdown(labels[:, 2], true_query, labels[:, :2]),
+        "following_label": label_breakdown(next_label, true_next, labels[:, :2]),
+    }
+
+
 def plot_chain(summaries, path):
     """Four panels: performance, symbol behaviour, attention measures, learning curves."""
     generations = [s["generation"] for s in summaries]
@@ -266,7 +382,7 @@ def summarise_condition(condition, opts, dev):
     recomputed, so switching folders or adding a condition never re-measures
     work that is already done.
     """
-    summaries, label_rule = [], None
+    summaries, label_rule, distributions = [], None, []
     for folder in chain_folders(condition):
         record = folder / "analysis.json"
         if record.exists() and "final_generated_scores" in json.loads(
@@ -280,6 +396,16 @@ def summarise_condition(condition, opts, dev):
         else:
             summary = analyse_generation(folder, opts, dev)
         summaries.append(summary)
+
+        # Read straight from the saved dataset, so this never depends on a
+        # cached record. Generation 0 is shared, so its distributions are
+        # written once into its own folder rather than into every condition.
+        record = dataset_distributions(folder)
+        if record["generation"] == 0:
+            (folder / "dataset_distributions.json").write_bytes(
+                json.dumps(record, indent=2).encode("utf-8"))
+        else:
+            distributions.append(record)
         if summary["generation"] > 0:
             label_rule = json.loads(
                 (folder / "config.json").read_text(encoding="utf-8"))["label_rule"]
@@ -306,7 +432,19 @@ def summarise_condition(condition, opts, dev):
     (output / "generation_comparison.json").write_bytes(
         json.dumps(comparison, indent=2).encode("utf-8"))
     plot_chain(summaries, output / "generation_comparison.png")
+    (output / "dataset_distributions.json").write_bytes(json.dumps({
+        "condition": condition,
+        "label_generation": label_rule,
+        "source": "counted from each generation's saved training_data.h5",
+        "note": ("what the parent generated, against the original context mapping. "
+                 "The dataset for generation n was produced by generation n-1 and "
+                 "used to train generation n. Generation 0's own dataset holds "
+                 "correct continuations and is recorded beside it, in "
+                 "results/extended_task/recursive/generation_0/"),
+        "generations": distributions,
+    }, indent=2).encode("utf-8"))
     print("written:", (output / "generation_comparison.json").relative_to(common.ROOT))
+    print("written:", (output / "dataset_distributions.json").relative_to(common.ROOT))
     return comparison
 
 
@@ -384,40 +522,197 @@ def plot_conditions(comparisons, path):
     plt.close(figure)
 
 
+def plot_distributions(records, reference, path):
+    """Three panels on what the parents generated, across conditions.
+
+    `records` maps condition name to its list of per-generation distribution
+    records; `reference` is generation 0's, whose data is correct by
+    construction. Left: generated query labels at the last generation against
+    the true labels for the same questions. Middle: of the query answers that
+    were wrong, how many left the context entirely — drawn only where at least
+    1,000 answers were wrong, because the near-perfect conditions would otherwise
+    show a ratio taken over a handful of examples. Right: how far per-class
+    symbol selection strayed from the intended coin flip.
+    """
+    figure, axes = plt.subplots(1, 3, figsize=(16, 4.4))
+    labels = np.arange(5)
+
+    # Left: the true frequencies are not uniform, so they are the comparison.
+    width = 0.8 / (len(records) + 1)
+    true_counts = np.asarray(reference["query_label"]["correct_label_counts"], float)
+    axes[0].bar(labels - 0.4 + width / 2, true_counts / true_counts.sum(), width,
+                label="true labels", color="black")
+    for index, (condition, generations) in enumerate(sorted(records.items())):
+        counts = np.asarray(generations[-1]["query_label"]["generated_label_counts"], float)
+        axes[0].bar(labels - 0.4 + width * (index + 1.5), counts / counts.sum(), width,
+                    label=condition)
+    axes[0].set_xticks(labels)
+    axes[0].set_xlabel("label")
+    axes[0].set_ylabel("proportion of the million examples")
+    axes[0].set_title("Generated query labels, final generation")
+
+    for condition, generations in sorted(records.items()):
+        gens = [g["generation"] for g in generations]
+        # Of the wrong answers, the share that was not even a context label.
+        outside = []
+        for g in generations:
+            wrong = g["query_label"]["other_context_label"] +                 g["query_label"]["outside_context_labels"]
+            outside.append(g["query_label"]["outside_context_labels"] / wrong
+                           if wrong >= 1000 else float("nan"))
+        axes[1].plot(gens, outside, marker="o", label=condition)
+        axes[2].plot(gens, [g["next_symbol"]["selection_rate_sd"] for g in generations],
+                     marker="o", label=condition)
+
+    axes[1].axhline(0.75, color="grey", ls=":", lw=1,
+                    label="uniform over 5 labels (3 of 4 wrong answers)")
+    axes[1].set_ylabel("share of wrong query labels")
+    axes[1].set_title("Wrong answers that left the context")
+    axes[1].set_ylim(0, 1.05)
+    axes[2].axhline(reference["next_symbol"]["selection_rate_sd"], color="black", ls="--",
+                    lw=1, label="generation 0 (correct data)")
+    axes[2].axhline(reference["next_symbol"]["coin_flip_sd_reference"], color="grey", ls=":",
+                    lw=1, label="coin-flip sampling spread")
+    axes[2].set_ylabel("sd of per-class selection rate")
+    axes[2].set_title("Symbol-identity preference, availability adjusted")
+    for axis in axes[1:]:
+        axis.set_xlabel("generation")
+        axis.set_xticks(sorted({g["generation"] for gens in records.values()
+                                for g in gens}))
+    for axis in axes:
+        axis.legend(fontsize=7)
+    figure.tight_layout()
+    figure.savefig(path, dpi=150)
+    plt.close(figure)
+
+
+# Each family compares the shared reference condition against the conditions that
+# change one thing from it. The reference appears in all three.
+REFERENCE_CONDITION = "label_argmax"
+FAMILIES = {
+    "label": ("label_sampling_temperature_", "condition_comparison"),
+    "context": ("context_feedback_temperature_", "context_feedback_comparison"),
+    "symbol": ("symbol_sampling_temperature_", "symbol_sampling_comparison"),
+}
+
+
+def family_conditions(family):
+    """The reference condition followed by that family's conditions, in folder order."""
+    prefix = FAMILIES[family][0]
+    others = sorted(f.name for f in pipeline.EXPERIMENTS.glob(prefix + "*") if f.is_dir())
+    return [REFERENCE_CONDITION] + others
+
+
+def plot_symbol_distributions(records, reference, path):
+    """Four panels on the symbol side of the generated data.
+
+    `records` maps condition name to its per-generation distribution records.
+    Concentration separates the stages that context feedback introduces: the
+    weights supplied to the question generator, the symbols actually offered, and
+    the symbols the parent then selected. Position preference and identity
+    preference are kept apart, because colder sampling could move either.
+    """
+    figure, axes = plt.subplots(1, 4, figsize=(20, 4.4))
+    for condition, generations in sorted(records.items()):
+        gens = [g["generation"] for g in generations]
+        axes[0].plot(gens, [g["next_symbol"]["largest_class_share"] for g in generations],
+                     marker="o", label=condition)
+        if generations[0]["context_sampling_weights"] is not None:
+            axes[0].plot(gens, [max(g["context_sampling_weights"]) for g in generations],
+                         ls=":", marker="x", label=condition + " (weights supplied)")
+            axes[0].plot(gens, [g["next_symbol"]["largest_offered_share"]
+                                for g in generations],
+                         ls="--", marker="s", label=condition + " (offered)")
+        axes[1].plot(gens, [g["next_symbol"]["distinct_classes_selected"]
+                            for g in generations], marker="o", label=condition)
+        axes[2].plot(gens, [g["chose_context_position_0"] for g in generations],
+                     marker="o", label=condition)
+        axes[3].plot(gens, [g["next_symbol"]["selection_rate_sd"] for g in generations],
+                     marker="o", label=condition)
+
+    axes[0].axhline(reference["next_symbol"]["largest_class_share"], color="black", ls="--",
+                    lw=1, label="generation 0 (correct data)")
+    axes[0].set_ylabel("largest single-class share")
+    axes[0].set_title("Symbol concentration, by stage")
+    axes[1].axhline(reference["next_symbol"]["distinct_classes_selected"], color="black",
+                    ls="--", lw=1, label="all 50 classes")
+    axes[1].set_ylabel("distinct classes selected")
+    axes[1].set_title("Symbol coverage")
+    axes[2].axhline(0.5, color="grey", ls=":", lw=1, label="even split")
+    axes[2].set_ylabel("proportion choosing context position 0")
+    axes[2].set_title("Positional preference")
+    axes[3].axhline(reference["next_symbol"]["coin_flip_sd_reference"], color="grey", ls=":",
+                    lw=1, label="coin-flip sampling spread")
+    axes[3].set_ylabel("sd of per-class selection rate")
+    axes[3].set_title("Identity preference, availability adjusted")
+    for axis in axes:
+        axis.set_xlabel("generation")
+        axis.set_xticks(sorted({g["generation"] for gens in records.values()
+                                for g in gens}))
+        axis.legend(fontsize=6)
+    figure.tight_layout()
+    figure.savefig(path, dpi=150)
+    plt.close(figure)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--condition", default=None,
                         help="Folder name under results/extended_task/experiments/")
-    parser.add_argument("--compare-conditions", action="store_true",
-                        help="Read each condition's table and write the comparison")
+    parser.add_argument("--compare-family", choices=sorted(FAMILIES),
+                        help="Compare the shared reference condition against one family: "
+                             "label generation, context feedback or next-symbol temperature")
     args = parser.parse_args()
 
     opts = common.baseline_options()
     opts.model_output_classes = opts.fs_relabel
 
-    # Comparing conditions only reads tables the per-condition runs already wrote.
-    if args.compare_conditions:
+    # Comparing a family only reads tables the per-condition runs already wrote.
+    if args.compare_family:
+        conditions = family_conditions(args.compare_family)
+        stem = FAMILIES[args.compare_family][1]
         comparisons = []
-        for folder in sorted(pipeline.EXPERIMENTS.glob("*")):
-            table = folder / "generation_comparison.json"
+        for name in conditions:
+            table = pipeline.EXPERIMENTS / name / "generation_comparison.json"
             if table.exists():
                 comparisons.append(json.loads(table.read_text(encoding="utf-8")))
         if len(comparisons) < 2:
-            raise SystemExit("Need at least two analysed conditions to compare.")
-        (pipeline.RECURSIVE / "condition_comparison.json").write_bytes(json.dumps({
+            raise SystemExit("Need the reference plus at least one analysed condition.")
+        (pipeline.RECURSIVE / (stem + ".json")).write_bytes(json.dumps({
             "question": ("How does the synthetic-label generation strategy affect "
                          "performance degradation and induction-circuit function "
                          "across recursive generations?"),
             "shared_generation_0": str(pipeline.GENERATION_0.relative_to(common.ROOT)),
             "evaluation": "identical fixed development questions and decoding for both conditions",
-            "note": ("argmax against sampling compares generation strategies; "
-                     "temperatures 1, 3 and 5 compare temperatures within sampling. "
-                     "One chain per condition from a common parent, not independent "
-                     "replications"),
+            "family": args.compare_family,
+            "reference_condition": REFERENCE_CONDITION,
+            "note": ("every condition changes one thing from the reference, which uses the "
+                     "original opening questions, argmax labels and next-symbol "
+                     "temperature 1. One chain per condition from a common parent, not "
+                     "independent replications"),
             "conditions": comparisons,
         }, indent=2).encode("utf-8"))
-        plot_conditions(comparisons, pipeline.RECURSIVE / "condition_comparison.png")
+        plot_conditions(comparisons, pipeline.RECURSIVE / (stem + ".png"))
+
+        # The distribution figures read the records each condition already wrote.
+        records = {}
+        for name in conditions:
+            table = pipeline.EXPERIMENTS / name / "dataset_distributions.json"
+            if table.exists():
+                records[name] = json.loads(table.read_text(encoding="utf-8"))["generations"]
+        reference = json.loads((pipeline.GENERATION_0 / "dataset_distributions.json")
+                               .read_text(encoding="utf-8"))
+        if args.compare_family == "label":
+            # The label family's question is where the generated labels went.
+            figure_path = pipeline.RECURSIVE / "data_distributions.png"
+            plot_distributions(records, reference, figure_path)
+        else:
+            # The symbol families ask about concentration, coverage, position
+            # preference and identity preference instead.
+            figure_path = pipeline.RECURSIVE / (
+                stem.replace("comparison", "distributions") + ".png")
+            plot_symbol_distributions(records, reference, figure_path)
+        print("written:", figure_path.relative_to(common.ROOT))
         for comparison in comparisons:
             print("\n" + comparison["condition"])
             for row in comparison["generations"]:
@@ -426,12 +721,12 @@ def main():
                     row["generation"], row["query_label_accuracy"],
                     row["strongest_induction_score"],
                     quality.get("query_label_errors", 0) if row["generation"] else "-"))
-        print("\nwritten:", (pipeline.RECURSIVE / "condition_comparison.json").relative_to(common.ROOT))
-        print("written:", (pipeline.RECURSIVE / "condition_comparison.png").relative_to(common.ROOT))
+        print("\nwritten:", (pipeline.RECURSIVE / (stem + ".json")).relative_to(common.ROOT))
+        print("written:", (pipeline.RECURSIVE / (stem + ".png")).relative_to(common.ROOT))
         return
 
     if args.condition is None:
-        parser.error("give --condition, or --compare-conditions")
+        parser.error("give --condition, or --compare-family")
     summarise_condition(args.condition, opts, pipeline.load_dev_set(opts))
 
 

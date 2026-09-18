@@ -52,10 +52,21 @@ the matching symbol.
   the previous generation's own answers.
 - A **separate learning-rate search for the extended task**, over the same six
   rates × three seeds, selecting the rate used by everything below.
-- **Four extended-task recursive chains** of five models each at that selected
-  rate. All four share **one** generation 0 and differ only in how the parent
-  turns its label logits into training targets: argmax, or sampling at
-  temperature 1, 3 or 5.
+- **Three families of extended-task recursive chains** at that selected rate,
+  nine conditions in total. Every chain is five models, and **all of them share
+  one generation 0**. Each family changes exactly one thing from a shared
+  reference condition — original opening questions, argmax labels, next symbol
+  sampled at temperature 1:
+  - **label generation** — argmax (the reference), or label sampling at
+    temperature 1, 3 or 5;
+  - **context feedback** — each child's opening questions are built from the
+    frequencies of the symbols its parent actually generated, sharpened at
+    context temperature 1, 1/3 or 0.2;
+  - **next-symbol temperature** — the parent picks between the two context
+    symbols at temperature 1/3 or 0.2 instead of 1.
+
+  Most chains are five models (generations 0–4). The four sharpened symbol
+  conditions run to **generation 6**, seven models each.
 - Analysis of accuracy and loss at each output position, teacher-forced and
   self-generated continuations, the corruption of the generated targets,
   next-symbol position and identity behaviour, previous-token and induction
@@ -75,6 +86,7 @@ successors, so five models means generation 0 plus four successors.
 | `02_recursive_generations.md` | What happens to the base task across five recursive generations? |
 | `04_extended_task_tuning.md` | Which learning rate suits the **extended** task, over the same grid? |
 | `05_label_generation_strategies.md` | How does the label-generation strategy affect degradation and the induction-circuit measures across generations? |
+| `06_symbol_distribution_experiments.md` | What happens when the symbols themselves are fed back into the questions, or chosen more sharply? |
 
 Finding 03 reported an earlier extended-task run made before that task had been
 tuned; finding 05 supersedes it at the selected learning rate, so 03 was retired
@@ -132,7 +144,7 @@ NLP-Project-1/
 | `extended_model.py` | The extended task's model and losses: the authors' backbone unchanged, plus a two-way head that picks the next symbol. Also generates a continuation autoregressively. |
 | `tune_extended.py` | Trains the extended task's learning-rate grid on correct continuations, applies the selection rule, writes the results table, selection record and figure. The recursive chains read the selected rate from that record. |
 | `run_extended.py` | Trains one extended chain: generation 0 on correct continuations, then each successor on continuations its parent generated. `--label-strategy` and `--label-temperature` select the condition; generation 0 is trained once and shared by all of them. |
-| `analyse_extended.py` | Per generation: development scores at all three output positions teacher-forced and self-generated, attention measures, single-head ablations. `--condition` writes one chain's table and figure; `--compare-conditions` writes the comparison across conditions. |
+| `analyse_extended.py` | Per generation: development scores at all three output positions teacher-forced and self-generated, attention measures, single-head ablations. `--condition` writes one chain's table, figure and generated-data distributions; `--compare-family` puts the shared reference beside one family — label generation, context feedback or next-symbol temperature. |
 
 ## Setup
 
@@ -246,7 +258,7 @@ the search that justified them.
 All 18 candidates share one original-task training set, and finished candidates
 are skipped, so the command is safe to stop and restart.
 
-### 7. Run the four recursive conditions
+### 7. Run the nine recursive conditions
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --generations 4
@@ -255,10 +267,48 @@ are skipped, so the command is safe to stop and restart.
 .\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --label-strategy sample --label-temperature 5 --generations 4
 ```
 
-Run them in order. The first trains **generation 0** on correct continuations and
-then the argmax chain; the other three reuse that same generation 0 and train
-their own generations 1–4. Generation 0 is trained once and shared by all four
-conditions.
+Those four are the **label-generation family**. Run them in order: the first
+trains **generation 0** on correct continuations and then the argmax chain, and
+the rest reuse that same generation 0. Generation 0 is trained once and shared by
+every condition in every family.
+
+The two symbol families change the questions and the symbol choice instead of the
+labels, and both use argmax labels throughout:
+
+```powershell
+.\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --context-temperature 1 --generations 4
+.\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --context-temperature 1/3 --generations 6
+.\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --context-temperature 0.2 --generations 6
+.\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --next-symbol-temperature 1/3 --generations 6
+.\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --next-symbol-temperature 0.2 --generations 6
+```
+
+`--generations` names the **final** generation, not how many to add. Generations
+that already exist are loaded as parents rather than retrained, so raising the
+number extends a finished chain. **Chains deliberately differ in length**: the
+four sharpened symbol conditions run to generation 6 because four generations
+turned out not to be enough to characterise them, while the reference and context
+temperature 1 stop at generation 4.
+
+**Context feedback** (`--context-temperature`) changes where the question
+generator gets its symbol weights. Before building each child's questions, the
+parent is replayed over the openings in its *own* saved training set, the
+identities of the next symbols it generates are counted, and those frequencies
+`p` are sharpened into weights proportional to `p ** (1 / T)`. Temperature 1
+leaves them as measured, 1/3 cubes them and 0.2 raises them to the fifth power.
+The generator then builds ordinary valid questions from those weights — two
+distinct context classes drawn without replacement, unchanged label pairs, query
+construction and exemplar rules. Nothing is smoothed, replenished or cut off.
+Because the two classes must differ, the frequencies actually offered need not
+match the weights exactly; both are recorded.
+
+**Next-symbol temperature** (`--next-symbol-temperature`) divides the two
+next-symbol logits before sampling, so the parent follows its existing preference
+between the two context symbols more sharply. That preference may be for a
+position, for particular symbol identities, or both, and the analysis measures
+those separately. Opening questions stay on the original distribution.
+
+Both flags accept `1/3` so a third stays exact rather than rounded.
 
 Finished generations are skipped, each condition writes to its own folder, and a
 run trained at a different learning rate is refused rather than silently reused —
@@ -292,18 +342,36 @@ training loss, the evaluation decoding and generation 0's data are unchanged.
 
 ### 8. Analyse the extended task
 
+Run `--condition` once per condition, then one `--compare-family` per family:
+
 ```powershell
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_argmax
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_1
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_3
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_5
-.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --compare-conditions
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition context_feedback_temperature_1
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition context_feedback_temperature_one_third
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition context_feedback_temperature_0.2
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition symbol_sampling_temperature_one_third
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition symbol_sampling_temperature_0.2
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --compare-family label
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --compare-family context
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --compare-family symbol
 ```
 
-Every condition is scored on the same fixed development questions with the same
-decoding and the same checkpoint- and head-selection rules, and a generation that
-has already been analysed is reused rather than re-measured. The final command
-reads the four tables and writes the comparison.
+Each family comparison puts the shared reference condition (`label_argmax`)
+beside that family's conditions, so the three comparisons stay readable and
+nothing is rerun to produce them.
+
+Every condition is scored on the same fixed development questions from the
+**original** task distribution — the evaluator is never adjusted to match a
+condition's changing training distribution — with the same decoding and the same
+checkpoint- and head-selection rules. A generation that has already been analysed
+is reused rather than re-measured. Each per-condition
+command also counts the distributions inside that condition's saved training
+datasets — which symbols the parent chose, and where its labels went. The final
+command reads the four tables and writes the comparison and the distribution
+figure.
 
 ## What gets generated
 
@@ -320,13 +388,18 @@ repository — regenerate it by following the steps in order.
 | `results/extended_task/recursive/generation_0/` | the generation 0 shared by all four conditions |
 | `results/extended_task/recursive/experiments/<condition>/generation_<n>/` | one folder per generation, per condition |
 | `results/extended_task/recursive/experiments/<condition>/generation_comparison.json` / `.png` | that condition's chain |
-| `results/extended_task/recursive/condition_comparison.json` / `.png` | the four conditions side by side |
+| `results/extended_task/recursive/experiments/<condition>/dataset_distributions.json` | what that condition's parents actually generated, counted from the saved datasets: symbol offers, choices and selection rates per class, and for each label output the generated and true label histograms with a correct-versus-generated table |
+| `results/extended_task/recursive/condition_comparison.json` / `.png` | the label family beside the reference |
+| `results/extended_task/recursive/context_feedback_comparison.json` / `.png` | the context-feedback family beside the reference |
+| `results/extended_task/recursive/symbol_sampling_comparison.json` / `.png` | the next-symbol-temperature family beside the reference |
+| `results/extended_task/recursive/data_distributions.png` | where the generated labels went, label family |
+| `results/extended_task/recursive/context_feedback_distributions.png` / `symbol_sampling_distributions.png` | symbol concentration, coverage, positional preference and identity preference for each symbol family |
 
 Inside a generation folder:
 
 | File | Contents |
 | --- | --- |
-| `config.json` | every resolved setting, including seeds and schedules |
+| `config.json` | every resolved setting, including seeds and schedules. For an extended-task successor it also records the label strategy and temperature, the next-symbol temperature, the context-selection temperature, and — under context feedback — the parent's measured symbol frequencies and the sampling weights derived from them |
 | `log.h5` | one training loss and gradient norm per update (31,250), plus development accuracy and loss at each evaluation point |
 | `checkpoints/` | the saved models, named by sequence count |
 | `generated_training_data.h5` | successors only: the training set as class and exemplar indices plus labels — compact, not copied feature vectors |

@@ -110,23 +110,100 @@ The **context-position** preference stayed near a coin flip in every condition
 and generation (0.477–0.502, against 0.4994 in generation 0's own correct data),
 with no trend.
 
-The **symbol-identity** spread is a different measurement, and it barely moved.
-Counting which of the 50 training classes the parent actually selected as the
-next symbol: all 50 appear in every generated dataset; the largest single class
-share runs from 0.02026 (generation 0's correct data) to 0.02050 (temperature 3,
-generation 4); and the class entropy runs from 3.912006 down to 3.911970 nats,
-against a maximum of ln 50 = 3.912023. Frequencies therefore stayed very close to
-even everywhere, with the largest departure in the most corrupted temperature-3
-dataset. These differences are small and we did not test whether they are
-distinguishable from sampling variation.
+The **symbol-identity** spread is a different measurement, and it is covered in
+the distribution section below.
 
-Retaining all 50 classes would not on its own have shown that the frequencies
-were unchanged, which is why the share and the entropy are reported as well. Nor
-is a near-even spread forced by the design: the parent chooses between the two
-symbols already in the context, and both context slots are filled by classes
-drawn evenly from the 50, but a parent whose symbol head favoured particular
-symbol identities could still have skewed the result. In these runs it did not
-measurably do so.
+### The distributions inside the generated datasets
+
+Counted directly from every saved `training_data.h5`, and written to
+`dataset_distributions.json` beside each chain.
+
+![Generated query-label frequencies against the true labels; the share of wrong answers that left the context; and availability-adjusted symbol-identity preference](../results/extended_task/recursive/data_distributions.png)
+
+One fact makes all of this easier to read: **the opening contexts are identical
+in every dataset**. Every generation of every condition draws its questions from
+the same training key chain, and the class, exemplar and context-label arrays are
+byte-identical across all seventeen datasets. Each of the 50 training classes is
+therefore offered about 40,000 times as a candidate next symbol in every dataset,
+so differences in what was chosen come from the parent, not from what it was
+offered.
+
+**The true labels are not uniform.** Across the shared million questions the
+correct query label is 4 in 249,881 cases and each of 0–3 in about 187,000, so
+roughly 25% against 18.7%. The generated distributions are compared against that,
+not against a flat 20%.
+
+**Where the generated query labels went**, against the original context mapping.
+The two context labels always differ in these datasets, so the three outcomes are
+exclusive and exhaustive:
+
+| condition | gen | correct | the other context label | outside the context |
+| --- | --- | ---: | ---: | ---: |
+| argmax | 1–3 | 1.0000 | 0.0000 | 0.0000 |
+| argmax | 4 | 1.0000 | 0.0000 | 0.0000 |
+| T = 1 | 4 | 0.9996 | 0.0002 | 0.0002 |
+| T = 3 | 1 | 0.9492 | 0.0131 | 0.0377 |
+| T = 3 | 2 | 0.5222 | 0.1242 | 0.3537 |
+| T = 3 | 3 | 0.2862 | 0.1831 | 0.5307 |
+| T = 3 | 4 | 0.2113 | 0.2117 | 0.5770 |
+| T = 5 | 1 | 0.7791 | 0.0567 | 0.1643 |
+| T = 5 | 2 | 0.3004 | 0.1766 | 0.5230 |
+| T = 5 | 3 | 0.2071 | 0.2079 | 0.5851 |
+| T = 5 | 4 | 0.2009 | 0.2016 | 0.5975 |
+
+The following-label output behaves almost identically (temperature 5 generation
+4: 0.2013 correct, 0.2006 the other context label, 0.5981 outside).
+
+**The endpoint is a uniform label draw, not a biased one.** At temperature 5
+generation 4 the three columns are 0.20 / 0.20 / 0.60 — exactly what picking one
+of the five labels at random gives, since one is correct, one is the other
+context label and three are outside. The generated marginal confirms it:
+201,585 / 199,069 / 198,829 / 199,779 / 200,738 across the five labels, against
+true counts of 188,451 / 187,307 / 187,256 / 187,105 / 249,881. The parent has
+not acquired a preference for a particular label; it has **lost** the true
+distribution's over-representation of label 4. Temperature 3 generation 4 is
+close behind (201,111 / 195,817 / 193,546 / 204,878 / 204,648).
+
+**Errors were spread uniformly from the very first corrupted generation.** Of the
+query answers that were wrong, the share that was not even a context label is
+0.74 at temperature 3 generation 1 and stays between 0.73 and 0.75 in every later
+corrupted dataset. Uniform choice among the four wrong labels predicts 0.75.
+These errors are therefore not confusions between the two labels present in the
+context; they look like draws from a flattened distribution, which is what
+dividing the logits by 3 or 5 does. That is an observation about the sampling
+rule, not evidence that the parent confused the two context labels. The argmax
+and temperature-1 points are omitted from the middle panel of the figure, because
+their ratio would rest on as few as 13 wrong answers.
+
+**The correct-versus-generated tables show the residual signal disappearing.** At
+temperature 5 generation 4 every row is flat — whichever label was correct, the
+generated label is near-uniform (diagonal entries 38,371 / 37,337 / 37,560 /
+37,355 / 50,308, against off-diagonal entries of the same size within each row;
+row 4 is larger throughout only because label 4 is more common). At temperature 3
+generation 4 a weak diagonal survives: 40,590 correct against about 37,000 for
+each wrong label in row 0, and 53,105 against about 49,000 in row 4.
+
+**Symbol identities stayed close to the original distribution throughout.**
+Because every class is offered equally often, the informative measure is the
+availability-adjusted one: for each class, how often it was chosen divided by how
+often it was offered. The intended coin flip gives 0.5 for every class, and with
+about 40,000 offers per class the sampling spread of that estimate is about
+0.0025. The standard deviation of that rate across the 50 classes is 0.00217 in
+generation 0's correct data and runs 0.00231 to 0.00461 across all sixteen
+generated datasets — at or near the sampling floor almost everywhere. The one
+exception is the temperature-3 chain, which reaches 0.00345 at generation 2 and
+0.00461 at generation 4, roughly 1.8 times the coin-flip spread. Temperature 5,
+whose label accuracy fell further and earlier, shows no such excursion
+(0.00231–0.00269).
+
+The coarser measures agree: all 50 classes appear in every dataset, the largest
+class share runs 0.02026 to 0.02050, and the chosen-class entropy runs 3.912006
+down to 3.911970 nats against a maximum of ln 50 = 3.912023. Retaining all 50
+classes would not on its own have shown that the frequencies were unchanged,
+which is why the share, the entropy and the selection rate are reported as well.
+Nor is a near-even spread forced by the design: a parent whose symbol head
+favoured particular symbol identities could have skewed it. In these runs it did
+not measurably do so, apart from the small temperature-3 excursion.
 
 ### What the successors learned
 
@@ -152,10 +229,14 @@ error would not be the right basis for one. This is stability across generations
 1–4 of these two chains, at this seed and budget — not a claim that these
 strategies cannot degrade a model.
 
-**Temperature 3 and temperature 5 both collapsed**, at different generations:
+**Temperature 3 and temperature 5 both collapsed on the label outputs** — it is
+query-label and following-label accuracy that fell, while symbol loss stayed at
+its floor — at different generations:
 temperature 5 between generations 1 and 2, temperature 3 between generations 2
 and 3. Temperature 5 ends at 0.194 on these 1,000 questions, close to the 0.2 that
-uniform guessing over five labels gives.
+uniform guessing over five labels gives. Every later use of "collapsed" in this
+finding refers to that: a fall in label accuracy on the development evaluator,
+not to symbol concentration or positional bias, neither of which moved here.
 
 **Self-generated continuations agree with the teacher-forced scores.** Letting
 each model condition on its own output gives the same query-label accuracy to
@@ -297,6 +378,38 @@ collapsed — the higher temperature one generation earlier. That association ho
 across the four conditions we ran; with one chain per condition it is not a
 dose–response curve.
 
+**What changed in the data passed between generations, and what did not.** Each
+dataset was produced by one generation and used to train the next: the dataset
+for generation 2 came from generation 1. Of the four things we looked for:
+
+- *Label confusion between the two context labels* — **not supported**. Wrong
+  answers left the context about three quarters of the time from the first
+  corrupted dataset onwards, which is what uniform choice among the four wrong
+  labels gives. The parent was not mistaking one context label for the other.
+- *A preference for particular labels* — **not supported, and the opposite of
+  what happened**. The generated marginal moved towards uniform and in doing so
+  lost the true distribution's over-representation of label 4 (25% → 20%).
+- *Positional or symbol-identity bias* — **essentially absent**. The
+  context-position split stayed between 0.477 and 0.502, and availability-adjusted
+  symbol selection stayed at or near its sampling floor, with one small
+  temperature-3 excursion to about 1.8 times that floor.
+- *Reduced symbol coverage or a more concentrated symbol distribution* — **not
+  supported**. All 50 classes appear in every dataset and the chosen-class
+  entropy differs from the maximum only in the fifth decimal place.
+
+So **the generated symbol distribution stayed close to the original while label
+correctness deteriorated completely.** The deterioration lives in the label
+outputs; on these measures the symbol side of the generated data is
+indistinguishable from the correct data. That is a negative result and is
+reported as one.
+
+It also fits the model measurements: the trained children keep symbol loss at the
+ln 2 floor in every condition while their label accuracy collapses, so the data
+and the models agree about which output deteriorated. The small temperature-3
+symbol excursion appears in the same chain as heavy label corruption, but
+temperature 5 corrupted labels *more* and showed no such excursion, so nothing
+here indicates that symbol bias contributed to the label collapse.
+
 **What we can and cannot say about the circuit.** Each successor starts from
 fresh weights, so there is no inherited circuit for recursion to erode; the
 question is whether each successor *develops* the induction attention pattern
@@ -351,6 +464,15 @@ moved only in the fifth decimal place.
   neither the circuit's importance nor its redundancy.
 - **All results are on a 1,000-question sample** drawn from 100 held-out classes,
   not over the whole question distribution.
+- **The distribution measurements are empirical frequencies of what was
+  generated**, not the models' predicted probability vectors. The saved datasets
+  record the tokens that were drawn, not the distributions they were drawn from,
+  so a statement like "the parent's label distribution became uniform" is about
+  its outputs on these million questions. Recovering the underlying probabilities
+  would need fresh inference over the saved checkpoints, which this analysis did
+  not do.
+- **The symbol excursion at temperature 3 was not tested for significance**, and
+  no mechanism linking symbol selection to label collapse was tested.
 - **1e-3 is the best of the six rates tested at this budget** (finding 04) and
   sits at the top of that range. The earlier 1e-05 experiment, retired from the
   maintained project, measured much larger induction-head ablation effects, so
@@ -371,7 +493,7 @@ From the project root, with the environment set up (see README):
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_1
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_3
 .\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --condition label_sampling_temperature_5
-.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --compare-conditions
+.\.venv\Scripts\python.exe scripts/extended_task/analyse_extended.py --compare-family label
 ```
 
 The first recursive command trains the shared generation 0 and the argmax chain;
@@ -389,6 +511,15 @@ Measurements and figures:
   effects, and the 12-checkpoint trajectory
 - `.../generation_<n>/dataset_quality.json` — what the parent generated, as
   counts and rates, with position and symbol-identity measures kept apart
+- `results/extended_task/recursive/experiments/<condition>/dataset_distributions.json`
+  — the generated distributions counted from the saved datasets: per-class symbol
+  offers, choices and selection rates, and for each label output the generated and
+  true label histograms, the correct / other-context / outside-context split and
+  the 5×5 correct-versus-generated table
+- `results/extended_task/recursive/generation_0/dataset_distributions.json` — the
+  same measurements on generation 0's correct data, used as the reference
+- `results/extended_task/recursive/data_distributions.png` — the distribution
+  figure above
 - `.../generation_<n>/log.h5` — the 201-point learning curves the transition
   table is read from
 - `results/extended_task/recursive/generation_0/` — the shared parent

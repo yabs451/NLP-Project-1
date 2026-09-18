@@ -4,15 +4,21 @@ Generation 0 learns from correct continuations and is shared by every condition.
 Each successor learns from continuations its parent generated, mistakes included.
 Opening contexts always come from the authors' original task generator.
 
-`--label-strategy` selects how the parent turns label logits into training
-targets: argmax, or sampling at `--label-temperature`. The next symbol is always
-sampled at temperature 1. The learning rate comes from the extended-task search.
+Three things can vary, one family at a time, from the reference condition
+(original questions, argmax labels, next symbol at temperature 1):
+`--label-strategy`/`--label-temperature` change how label targets are chosen,
+`--next-symbol-temperature` how sharply the parent picks between the two context
+symbols, and `--context-temperature` turns on context feedback, where each
+child's questions are built from the parent's own generated symbol frequencies.
+The learning rate comes from the extended-task search.
 
-Method and results: findings/05_label_generation_strategies.md
+Method and results: findings/05_label_generation_strategies.md and
+findings/06_symbol_distribution_experiments.md
 
 Usage (from the project root), one command per condition:
   .venv/Scripts/python.exe scripts/extended_task/run_extended.py
-  .venv/Scripts/python.exe scripts/extended_task/run_extended.py --label-strategy sample --label-temperature 1
+  .venv/Scripts/python.exe scripts/extended_task/run_extended.py --next-symbol-temperature 1/3
+  .venv/Scripts/python.exe scripts/extended_task/run_extended.py --context-temperature 1/3
 """
 import argparse
 from functools import partial
@@ -49,6 +55,7 @@ TRAINING_CHOICE_SEED = 12         # coin flips for generation 0's next-symbol ta
 DEV_CHOICE_SEED = 13              # coin flips for the development set's targets
 GENERATION_SEED = 14              # sampling the next symbol when a parent generates
 LABEL_SAMPLING_SEED = 15          # sampling labels, when the strategy is "sample"
+FREQUENCY_SEED = 16               # measuring a parent's own generated symbol frequencies
 
 EVALUATE_EVERY = 5000             # sequences between development evaluations
 LARGE_BATCH = 2000                # batch used for evaluation and for generation
@@ -74,16 +81,26 @@ def selected_learning_rate():
     return float(json.loads(SELECTION_FILE.read_text())["selected_learning_rate"])
 
 
-def draw_opening_contexts(opts, splits, count):
+def draw_opening_contexts(opts, splits, count, class_weights=None):
     """Draw `count` original-task contexts and queries, as compact indices.
 
     Reuses the authors' samplers, so the opening of every sequence is exactly
     the base task: 50 training classes, exemplar 0, one distractor, training
     label pairs. Returns class indices [n, 3], exemplar indices [n, 3] and the
     true labels [n, 3] (context A, context B, query).
+
+    `class_weights` replaces the original uniform class distribution, in the
+    order of `splits["class"]["train"]`. The sampler draws the query class from
+    it and then the distractor from the same weights with the query masked out,
+    so the two context classes stay distinct and the offered frequencies need
+    not match the weights exactly. Everything else — label pairs, query
+    construction, exemplars — is unchanged.
     """
-    zipf = jnp.arange(1, opts.class_split[0] + 1, dtype=jnp.float32)
-    distribution = (1 / zipf ** opts.zipf_alpha)
+    if class_weights is None:
+        zipf = jnp.arange(1, opts.class_split[0] + 1, dtype=jnp.float32)
+        distribution = (1 / zipf ** opts.zipf_alpha)
+    else:
+        distribution = jnp.asarray(class_weights, jnp.float32)
     distribution = distribution / jnp.sum(distribution)
     burst_sampler = partial(samplers.get_constant_burst_seq_idxs,
                             classes=splits["class"]["train"], class_distr=distribution,
@@ -136,15 +153,69 @@ def build_generation_0_dataset(opts, splits, count):
             "true_query_label": labels[:, 2].copy(), "true_next_label": next_label.copy()}
 
 
+def measure_generated_symbol_frequencies(opts, parent, features, dataset, train_classes,
+                                        symbol_temperature):
+    """Which symbol identities the parent generates on its own training questions.
+
+    Step (a) of the context-feedback rule: replay the openings already saved in
+    the parent's dataset, generate continuations the ordinary way, and count the
+    classes chosen. Counts are accumulated batch by batch so no second
+    million-example dataset is written. Returns frequencies in the order of
+    `train_classes`.
+
+    These are the identities the parent *produced*, not the ones it inherited in
+    its own targets.
+    """
+    class_idxs = dataset["class_idxs"]
+    labels = dataset["labels"]
+    counts = np.zeros(int(train_classes.max()) + 1, np.int64)
+    key = jax.random.PRNGKey(FREQUENCY_SEED)
+    label_key = jax.random.PRNGKey(LABEL_SAMPLING_SEED)
+    for start in range(0, len(class_idxs), LARGE_BATCH):
+        stop = start + LARGE_BATCH
+        key, step_key = jax.random.split(key)
+        label_key, label_step_key = jax.random.split(label_key)
+        symbols = features[jnp.asarray(class_idxs[start:stop]),
+                           jnp.asarray(dataset["exemplar_idxs"][start:stop])]
+        _, choice, _ = extended.generate_continuation(
+            parent, symbols, jnp.asarray(labels[start:stop, :2], jnp.int32), step_key,
+            label_step_key, "argmax", 1.0, symbol_temperature)
+        chosen = class_idxs[start:stop][np.arange(stop - start), np.asarray(choice)]
+        counts += np.bincount(chosen.astype(np.int64), minlength=len(counts))
+    frequencies = counts[train_classes] / counts.sum()
+    return frequencies
+
+
+def context_sampling_weights(frequencies, context_temperature):
+    """Sharpen measured frequencies into class weights: w_i proportional to p_i ** (1/T).
+
+    Temperature 1 leaves them unchanged, 1/3 cubes them and 0.2 raises them to
+    the fifth power. The exponent is applied to the frequencies themselves, not
+    to raw counts through a softmax. No smoothing or cutoff is applied, so a
+    class the parent never generated keeps weight zero.
+    """
+    weights = np.asarray(frequencies, np.float64) ** (1.0 / context_temperature)
+    total = weights.sum()
+    if np.count_nonzero(weights) < 2 or total <= 0:
+        raise SystemExit("context feedback left fewer than two classes with positive "
+                         "weight, so valid two-class questions can no longer be built")
+    return weights / total
+
+
 def build_successor_dataset(opts, splits, parent, features, count,
-                            label_strategy, label_temperature):
+                            label_strategy, label_temperature,
+                            symbol_temperature=1.0, class_weights=None):
     """Continuations generated by the parent, conditioned on its own earlier tokens.
 
     The symbol key chain is unchanged from the argmax condition; label sampling
     draws from its own separate chain, so switching strategy cannot disturb the
-    opening questions or the symbol stream.
+    opening questions or the symbol stream. `class_weights` changes which
+    symbols the questions are built from, and `symbol_temperature` how sharply
+    the parent picks between the two in each context; both change what is
+    sampled, so the outputs are not expected to match the reference condition.
     """
-    class_idxs, exemplar_idxs, labels = draw_opening_contexts(opts, splits, count)
+    class_idxs, exemplar_idxs, labels = draw_opening_contexts(opts, splits, count,
+                                                              class_weights)
     true_query = labels[:, 2].copy()
 
     generated_query = np.empty(count, np.int8)
@@ -160,7 +231,7 @@ def build_successor_dataset(opts, splits, parent, features, count,
                            jnp.asarray(exemplar_idxs[start:stop])]
         query, choice, following = extended.generate_continuation(
             parent, symbols, jnp.asarray(labels[start:stop, :2], jnp.int32), step_key,
-            label_step_key, label_strategy, label_temperature)
+            label_step_key, label_strategy, label_temperature, symbol_temperature)
         generated_query[start:stop] = np.asarray(query, np.int8)
         generated_choice[start:stop] = np.asarray(choice, np.int8)
         generated_next[start:stop] = np.asarray(following, np.int8)
@@ -314,8 +385,14 @@ def save_dataset(path, dataset):
 
 
 def write_config(folder, opts, generation, parent_folder, label_strategy,
-                 label_temperature):
-    """One record per run: the settings, the seeds and where the parent came from."""
+                 label_temperature, symbol_temperature=1.0, context_temperature=None,
+                 context_feedback=None):
+    """One record per run: the settings, the seeds and where the parent came from.
+
+    `context_feedback` carries the small per-class records that produced this
+    run's opening questions, so the sampling weights live beside the run they
+    built rather than in a separate file.
+    """
     config = {key: value for key, value in vars(opts).items()
               if not key.startswith("opto_")}
     config.update(
@@ -329,7 +406,15 @@ def write_config(folder, opts, generation, parent_folder, label_strategy,
         dev_choice_seed=DEV_CHOICE_SEED,
         generation_sampling_seed=GENERATION_SEED,
         label_sampling_seed=LABEL_SAMPLING_SEED,
-        next_symbol_rule="sampled from the two-way head at temperature 1",
+        next_symbol_temperature=symbol_temperature,
+        next_symbol_rule=("sampled from the two-way head at temperature "
+                          "{:g}".format(symbol_temperature)),
+        context_selection_temperature=context_temperature,
+        context_rule=("original task distribution over the 50 training classes"
+                      if context_temperature is None else
+                      "classes drawn from the parent's own generated next-symbol "
+                      "frequencies raised to the power 1/{:g}".format(context_temperature)),
+        context_feedback=context_feedback,
         label_strategy=label_strategy,
         label_temperature=(label_temperature if label_strategy == "sample" else None),
         label_rule=("argmax over the five labels" if label_strategy == "argmax" else
@@ -349,8 +434,31 @@ def require_matching_rate(folder, learning_rate):
                                                            learning_rate))
 
 
-def condition_name(label_strategy, label_temperature):
-    """Folder name for a condition, e.g. label_argmax or label_sampling_temperature_3."""
+def temperature_value(text):
+    """Parse a temperature, accepting '1/3' so thirds stay exact rather than rounded."""
+    if "/" in text:
+        top, bottom = text.split("/")
+        return float(top) / float(bottom)
+    return float(text)
+
+
+def temperature_name(value):
+    """Folder-safe name for a temperature; a third is spelled out, not rounded."""
+    return "one_third" if abs(value - 1 / 3) < 1e-9 else "{:g}".format(value)
+
+
+def condition_name(label_strategy, label_temperature, symbol_temperature=1.0,
+                   context_temperature=None):
+    """Folder name for a condition.
+
+    The reference condition is `label_argmax`: original opening questions, argmax
+    labels, next symbol at temperature 1. Each family changes one thing from it,
+    and the name says which.
+    """
+    if context_temperature is not None:
+        return "context_feedback_temperature_" + temperature_name(context_temperature)
+    if symbol_temperature != 1.0:
+        return "symbol_sampling_temperature_" + temperature_name(symbol_temperature)
     if label_strategy == "argmax":
         return "label_argmax"
     return "label_sampling_temperature_{:g}".format(label_temperature)
@@ -363,8 +471,14 @@ def main():
                         help="How many successors to train after generation 0")
     parser.add_argument("--label-strategy", choices=["argmax", "sample"], default="argmax",
                         help="How the parent turns label logits into training targets")
-    parser.add_argument("--label-temperature", type=float, default=3.0,
+    parser.add_argument("--label-temperature", type=temperature_value, default=3.0,
                         help="Temperature used when --label-strategy is 'sample'")
+    parser.add_argument("--next-symbol-temperature", type=temperature_value, default=1.0,
+                        help="Temperature for picking between the two context symbols")
+    parser.add_argument("--context-temperature", type=temperature_value, default=None,
+                        help="Turn on context feedback: build each child's questions from "
+                             "the parent's own generated symbol frequencies, raised to "
+                             "the power 1/T. Accepts '1/3'.")
     args = parser.parse_args()
     common.use_above_normal_priority()
 
@@ -378,7 +492,9 @@ def main():
     splits = main_utils.get_splits_from_opts(opts, features.shape)
     dev = load_dev_set(opts)
 
-    condition = EXPERIMENTS / condition_name(args.label_strategy, args.label_temperature)
+    condition = EXPERIMENTS / condition_name(args.label_strategy, args.label_temperature,
+                                             args.next_symbol_temperature,
+                                             args.context_temperature)
     condition.mkdir(parents=True, exist_ok=True)
     print("condition:", condition.relative_to(common.ROOT), flush=True)
 
@@ -396,6 +512,7 @@ def main():
         parent_model = train_generation(opts, GENERATION_0, dataset, features, dev)
         print("generation 0 trained", flush=True)
     parent_folder = GENERATION_0
+    train_classes = np.asarray(splits["class"]["train"])
 
     for generation in range(1, args.generations + 1):
         folder = condition / "generation_{}".format(generation)
@@ -409,9 +526,30 @@ def main():
             continue
         folder.mkdir(parents=True, exist_ok=True)
 
+        # Context feedback: measure what the parent generates on its own saved
+        # questions, sharpen those frequencies, and build the child's questions
+        # from them. Otherwise the original task distribution is used.
+        weights, feedback = None, None
+        if args.context_temperature is not None:
+            parent_data = load_dataset(parent_folder / "training_data.h5")
+            frequencies = measure_generated_symbol_frequencies(
+                opts, parent_model, features, parent_data, train_classes,
+                args.next_symbol_temperature)
+            weights = context_sampling_weights(frequencies, args.context_temperature)
+            feedback = {
+                "measured_on": str(parent_folder.relative_to(common.ROOT)),
+                "frequency_seed": FREQUENCY_SEED,
+                "train_classes": train_classes.tolist(),
+                "parent_generated_frequencies": frequencies.tolist(),
+                "sampling_weights": weights.tolist(),
+            }
+            print("generation", generation, "context weights: max {:.5f} min {:.5f}".format(
+                weights.max(), weights.min()), flush=True)
+
         dataset = build_successor_dataset(opts, splits, parent_model, features,
                                           opts.train_iters, args.label_strategy,
-                                          args.label_temperature)
+                                          args.label_temperature,
+                                          args.next_symbol_temperature, weights)
         save_dataset(folder / "training_data.h5", dataset)
         quality = dataset_quality(dataset)
         (folder / "dataset_quality.json").write_bytes(
@@ -419,13 +557,20 @@ def main():
         print("generation", generation, "dataset:", json.dumps(quality), flush=True)
 
         write_config(folder, opts, generation, parent_folder, args.label_strategy,
-                     args.label_temperature)
+                     args.label_temperature, args.next_symbol_temperature,
+                     args.context_temperature, feedback)
         parent_model = train_generation(opts, folder, dataset, features, dev)
         parent_folder = folder
         print("generation", generation, "trained", flush=True)
 
     print("done;", condition.relative_to(common.ROOT), "holds generations 1 to",
           args.generations)
+
+
+def load_dataset(path):
+    """Read a saved training dataset back into plain arrays."""
+    with h5py.File(path, "r") as handle:
+        return {name: handle[name][:] for name in handle}
 
 
 def load_model(folder, sequences, opts):

@@ -169,12 +169,16 @@ def choose_label(logits, strategy, temperature, key):
 
 @eqx.filter_jit
 def generate_continuation(model, context_symbols, context_labels, key, label_key,
-                          label_strategy="argmax", label_temperature=1.0):
+                          label_strategy="argmax", label_temperature=1.0,
+                          symbol_temperature=1.0):
     """Produce a continuation the way a parent model does, one token at a time.
 
     Each step conditions on the tokens the model itself produced, mistakes
-    included. The next symbol is always sampled from the two-way head at
-    temperature 1; the two labels follow `label_strategy`.
+    included. The next symbol is sampled from the two-way head at
+    `symbol_temperature`; the two labels follow `label_strategy`. Colder symbol
+    sampling sharpens whichever of the two context positions the head already
+    prefers, so it can change both the position split and which symbol
+    identities end up chosen.
 
     `key` drives the symbol sampling and `label_key` the label sampling, kept
     separate so that adding label sampling leaves the symbol stream unchanged.
@@ -200,7 +204,8 @@ def generate_continuation(model, context_symbols, context_labels, key, label_key
     stage2 = jnp.concatenate([context_labels, query_label[:, None]], axis=1)
     _, symbol_logits, _ = batched_forward(model, context_symbols, stage2, zeros, key)
     symbol_key, _ = jax.random.split(key)
-    symbol_choice = jax.random.categorical(symbol_key, symbol_logits, axis=-1)
+    symbol_choice = jax.random.categorical(symbol_key, symbol_logits / symbol_temperature,
+                                           axis=-1)
 
     # Step 3: the following label, conditioned on the symbol just sampled.
     _, _, next_logits = batched_forward(model, context_symbols, stage2, symbol_choice, key)

@@ -34,15 +34,23 @@ if str(UPSTREAM) not in sys.path:
 def use_above_normal_priority():
     """Ask Windows to schedule this process above normal.
 
-    Training competes with whatever else is running on the machine. Best effort:
-    does nothing off Windows, and ignores a refusal.
+    Training competes with whatever else is running on the machine. The current
+    process is identified by the pseudo-handle -1, which must be passed as a
+    full-width pointer: left to ctypes' default 32-bit int it becomes an invalid
+    handle and the call silently does nothing. A private kernel32 handle is used
+    so this cannot disturb another module's ctypes settings. Does nothing off
+    Windows, and says so if Windows refuses.
     """
     if sys.platform != "win32":
         return
     import ctypes
     ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000
-    kernel32 = ctypes.windll.kernel32
-    kernel32.SetPriorityClass(kernel32.GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS)
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.GetCurrentProcess.restype = ctypes.c_void_p
+    kernel32.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+    if not kernel32.SetPriorityClass(kernel32.GetCurrentProcess(),
+                                     ABOVE_NORMAL_PRIORITY_CLASS):
+        print("could not raise process priority; continuing at normal", flush=True)
 
 
 def baseline_arguments():
