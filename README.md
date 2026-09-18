@@ -76,6 +76,14 @@ the matching symbol.
 Generation 0 is the original model. "N additional generations" means N
 successors, so five models means generation 0 plus four successors.
 
+## Handover
+
+`context/HANDOVER.md` is the single place to start if you are picking this project
+up: what it studies, how the two tasks work, what comes from the generator versus
+the parent in each experiment, the full experiment inventory with results, the
+distinctions that are easy to miss, the exact commands, and what remains
+untested.
+
 ## The write-ups
 
 `findings/` holds the scientific record, numbered in the order the work was done:
@@ -111,8 +119,8 @@ in hand.
 ```
 NLP-Project-1/
 ├── README.md
-├── requirements.txt          version pins, with the reasoning
-├── requirements-lock.txt     full freeze — install from this
+├── context/HANDOVER.md       start here if you are new to the project
+├── requirements.txt          the complete pinned environment
 ├── scripts/
 │   ├── common.py                    shared helpers
 │   ├── prepare_evaluation_data.py   class splits + the development questions
@@ -153,7 +161,7 @@ environment activation is needed because they call the interpreter directly.
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --disable-pip-version-check --no-cache-dir --timeout 120 -r requirements-lock.txt
+.\.venv\Scripts\python.exe -m pip install --disable-pip-version-check --no-cache-dir --timeout 120 -r requirements.txt
 .\.venv\Scripts\python.exe -m pip check
 ```
 
@@ -219,8 +227,13 @@ distribution — same classes, same context construction, correct context labels
 asks the parent for each answer and keeps its **argmax over all five labels** as
 the training target, replacing only the query's answer. No true targets are
 mixed in. It then trains a **freshly initialised** model (new weights, new
-optimizer — not the parent's weights) for one pass. `--generations N` chains N
-successors; finished generations are never retrained.
+optimizer — not the parent's weights) for one pass.
+
+Here `--generations N` means **N additional successors**, counted on from
+`--parent`. Unlike the extended-task pipeline, this script does not skip finished
+work: if the next generation's folder already exists it stops with an error
+rather than overwriting it. To continue an interrupted chain, point `--parent` at
+the last completed generation and ask only for the number still missing.
 
 ### 5. Analyse
 
@@ -283,7 +296,8 @@ labels, and both use argmax labels throughout:
 .\.venv\Scripts\python.exe scripts/extended_task/run_extended.py --next-symbol-temperature 0.2 --generations 6
 ```
 
-`--generations` names the **final** generation, not how many to add. Generations
+`--generations` here names the **final** generation, not how many to add — the
+opposite of the base task's `run_recursive.py`, which takes a count. Generations
 that already exist are loaded as parents rather than retrained, so raising the
 number extends a finished chain. **Chains deliberately differ in length**: the
 four sharpened symbol conditions run to generation 6 because four generations
@@ -428,9 +442,11 @@ It also means a tuning candidate cannot support mechanistic analysis, which is
 why generation 0 is trained separately rather than reused from the search — in
 both tasks.
 
-Analysis does not read all 55. It measures a fixed, roughly log-spaced subset of
-**12** of them, by the same rule in every generation and every condition, so the
-analysed points line up; each `analysis.json` lists exactly which ones it used.
+Analysis does not read all 55. The extended-task analysis measures a fixed,
+roughly log-spaced subset of **12** of them, by the same rule in every generation
+and every condition, so the analysed points line up. The base-task analysis uses
+its own rule and reports **13**. Each `analysis.json` lists exactly which
+checkpoints it used.
 
 Reducing snapshots never reduces the learning curves: those come from `log.h5`,
 which is written at every evaluation point regardless.
@@ -446,8 +462,9 @@ which is written at every evaluation point regardless.
   small effect does not establish redundancy, and no combination of heads was
   silenced.
 - **Attention is sampled sparsely.** The attention measures and ablations are
-  computed at 12 of the 55 checkpoints, while accuracy and loss are logged 201
-  times per run. Nothing is claimed about what happened in between.
+  computed at 12 of the 55 checkpoints in the extended task (13 in the base task),
+  while accuracy and loss are logged 201 times per run. Nothing is claimed about
+  what happened in between.
 - **Degradation across generations and development within training are separate
   questions.** Where two measures move within the same observed interval, nothing
   here establishes which moved first.

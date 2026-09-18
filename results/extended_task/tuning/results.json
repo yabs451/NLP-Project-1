@@ -1,0 +1,271 @@
+{
+  "grid": {
+    "learning_rates": [
+      1e-06,
+      3e-06,
+      1e-05,
+      3e-05,
+      0.0001,
+      0.001
+    ],
+    "init_seeds": [
+      5,
+      6,
+      7
+    ]
+  },
+  "task": "extended task, correct labels, 1,000,000 sequences, 31,250 updates",
+  "selection_rule": "highest unrounded mean final query-label development accuracy over init seeds 5, 6 and 7; exact ties broken by lowest mean final query-label loss, then by preferring 1e-05, then the smaller rate; a rate needs all three seeds completed to be eligible",
+  "selection_objective": "query-label accuracy only",
+  "varies_with_init_seed": "the backbone weights only; the two-way symbol head keeps its own fixed seed (11) and the training data is identical across candidates",
+  "scored_on": "results\\evaluation_data\\eval_dev.h5",
+  "fixed_settings": {
+    "train_seed": 0,
+    "eval_seed": 1,
+    "train_iters": 1000000,
+    "train_bs": 32,
+    "optimizer": "adam",
+    "weight_decay": 0.0,
+    "d_model": 64,
+    "num_heads": 8,
+    "depth": 2,
+    "mlp_ratio": null,
+    "class_split": [
+      50,
+      1473,
+      100
+    ],
+    "exemplar_split": [
+      1,
+      4,
+      0
+    ],
+    "fs_relabel": 5,
+    "fs_relabel_split_seed": 20,
+    "train_context_len": 2,
+    "noise_scale_train": 0.0,
+    "task": "extended (query label, next symbol, its label)",
+    "symbol_head_init_seed": 11,
+    "training_choice_seed": 12,
+    "dev_choice_seed": 13
+  },
+  "candidates": [
+    {
+      "learning_rate": 1e-06,
+      "init_seed": 5,
+      "run": "results\\extended_task\\tuning\\learning_rate_1e-06_init_seed_5",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.5190000534057617,
+      "dev_query_label_loss": 0.7505279779434204,
+      "dev_symbol_loss": 0.7009590268135071,
+      "dev_next_label_accuracy": 0.47700002789497375,
+      "dev_next_label_loss": 0.8064119219779968
+    },
+    {
+      "learning_rate": 1e-06,
+      "init_seed": 6,
+      "run": "results\\extended_task\\tuning\\learning_rate_1e-06_init_seed_6",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.5090000033378601,
+      "dev_query_label_loss": 0.7665149569511414,
+      "dev_symbol_loss": 0.701972484588623,
+      "dev_next_label_accuracy": 0.484000027179718,
+      "dev_next_label_loss": 0.7858407497406006
+    },
+    {
+      "learning_rate": 1e-06,
+      "init_seed": 7,
+      "run": "results\\extended_task\\tuning\\learning_rate_1e-06_init_seed_7",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.5370000004768372,
+      "dev_query_label_loss": 0.7527406811714172,
+      "dev_symbol_loss": 0.6999115347862244,
+      "dev_next_label_accuracy": 0.49400001764297485,
+      "dev_next_label_loss": 0.8080561757087708
+    },
+    {
+      "learning_rate": 3e-06,
+      "init_seed": 5,
+      "run": "results\\extended_task\\tuning\\learning_rate_3e-06_init_seed_5",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.7130000591278076,
+      "dev_query_label_loss": 0.5831631422042847,
+      "dev_symbol_loss": 0.7090217471122742,
+      "dev_next_label_accuracy": 0.6730000376701355,
+      "dev_next_label_loss": 0.6178921461105347
+    },
+    {
+      "learning_rate": 3e-06,
+      "init_seed": 6,
+      "run": "results\\extended_task\\tuning\\learning_rate_3e-06_init_seed_6",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.831000030040741,
+      "dev_query_label_loss": 0.39644691348075867,
+      "dev_symbol_loss": 0.7081100344657898,
+      "dev_next_label_accuracy": 0.800000011920929,
+      "dev_next_label_loss": 0.4360436499118805
+    },
+    {
+      "learning_rate": 3e-06,
+      "init_seed": 7,
+      "run": "results\\extended_task\\tuning\\learning_rate_3e-06_init_seed_7",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.8550000190734863,
+      "dev_query_label_loss": 0.3417641818523407,
+      "dev_symbol_loss": 0.7039320468902588,
+      "dev_next_label_accuracy": 0.8370000123977661,
+      "dev_next_label_loss": 0.3838431239128113
+    },
+    {
+      "learning_rate": 1e-05,
+      "init_seed": 5,
+      "run": "results\\extended_task\\tuning\\learning_rate_1e-05_init_seed_5",
+      "reused": true,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9620000720024109,
+      "dev_query_label_loss": 0.1037752702832222,
+      "dev_symbol_loss": 0.6966890096664429,
+      "dev_next_label_accuracy": 0.9490000605583191,
+      "dev_next_label_loss": 0.14874711632728577,
+      "reused_from": "trained earlier as the extended-task generation 0 at this exact configuration; its final checkpoint, initialisation checkpoint, log and config were kept here when that experiment was archived"
+    },
+    {
+      "learning_rate": 1e-05,
+      "init_seed": 6,
+      "run": "results\\extended_task\\tuning\\learning_rate_1e-05_init_seed_6",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9570000171661377,
+      "dev_query_label_loss": 0.15107610821723938,
+      "dev_symbol_loss": 0.6950185298919678,
+      "dev_next_label_accuracy": 0.9550000429153442,
+      "dev_next_label_loss": 0.14013132452964783
+    },
+    {
+      "learning_rate": 1e-05,
+      "init_seed": 7,
+      "run": "results\\extended_task\\tuning\\learning_rate_1e-05_init_seed_7",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9520000219345093,
+      "dev_query_label_loss": 0.17471198737621307,
+      "dev_symbol_loss": 0.6980389952659607,
+      "dev_next_label_accuracy": 0.9520000219345093,
+      "dev_next_label_loss": 0.15907199680805206
+    },
+    {
+      "learning_rate": 3e-05,
+      "init_seed": 5,
+      "run": "results\\extended_task\\tuning\\learning_rate_3e-05_init_seed_5",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.971000075340271,
+      "dev_query_label_loss": 0.1113671287894249,
+      "dev_symbol_loss": 0.6933295130729675,
+      "dev_next_label_accuracy": 0.9620000720024109,
+      "dev_next_label_loss": 0.12510201334953308
+    },
+    {
+      "learning_rate": 3e-05,
+      "init_seed": 6,
+      "run": "results\\extended_task\\tuning\\learning_rate_3e-05_init_seed_6",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9770000576972961,
+      "dev_query_label_loss": 0.07254919409751892,
+      "dev_symbol_loss": 0.6936981678009033,
+      "dev_next_label_accuracy": 0.9800000190734863,
+      "dev_next_label_loss": 0.06954325735569
+    },
+    {
+      "learning_rate": 3e-05,
+      "init_seed": 7,
+      "run": "results\\extended_task\\tuning\\learning_rate_3e-05_init_seed_7",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9760000705718994,
+      "dev_query_label_loss": 0.08722769469022751,
+      "dev_symbol_loss": 0.6941885948181152,
+      "dev_next_label_accuracy": 0.9790000319480896,
+      "dev_next_label_loss": 0.07725326716899872
+    },
+    {
+      "learning_rate": 0.0001,
+      "init_seed": 5,
+      "run": "results\\extended_task\\tuning\\learning_rate_0.0001_init_seed_5",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.984000027179718,
+      "dev_query_label_loss": 0.05102893337607384,
+      "dev_symbol_loss": 0.6935245394706726,
+      "dev_next_label_accuracy": 0.9880000352859497,
+      "dev_next_label_loss": 0.038467857986688614
+    },
+    {
+      "learning_rate": 0.0001,
+      "init_seed": 6,
+      "run": "results\\extended_task\\tuning\\learning_rate_0.0001_init_seed_6",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9960000514984131,
+      "dev_query_label_loss": 0.014385150745511055,
+      "dev_symbol_loss": 0.6938639879226685,
+      "dev_next_label_accuracy": 0.9960000514984131,
+      "dev_next_label_loss": 0.02419513650238514
+    },
+    {
+      "learning_rate": 0.0001,
+      "init_seed": 7,
+      "run": "results\\extended_task\\tuning\\learning_rate_0.0001_init_seed_7",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9930000305175781,
+      "dev_query_label_loss": 0.01732303574681282,
+      "dev_symbol_loss": 0.6936201453208923,
+      "dev_next_label_accuracy": 0.9940000176429749,
+      "dev_next_label_loss": 0.010715057142078876
+    },
+    {
+      "learning_rate": 0.001,
+      "init_seed": 5,
+      "run": "results\\extended_task\\tuning\\learning_rate_0.001_init_seed_5",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9970000386238098,
+      "dev_query_label_loss": 0.011365378275513649,
+      "dev_symbol_loss": 0.6933944225311279,
+      "dev_next_label_accuracy": 0.9960000514984131,
+      "dev_next_label_loss": 0.015728067606687546
+    },
+    {
+      "learning_rate": 0.001,
+      "init_seed": 6,
+      "run": "results\\extended_task\\tuning\\learning_rate_0.001_init_seed_6",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9980000257492065,
+      "dev_query_label_loss": 0.007752903737127781,
+      "dev_symbol_loss": 0.6935791373252869,
+      "dev_next_label_accuracy": 0.9960000514984131,
+      "dev_next_label_loss": 0.015768343582749367
+    },
+    {
+      "learning_rate": 0.001,
+      "init_seed": 7,
+      "run": "results\\extended_task\\tuning\\learning_rate_0.001_init_seed_7",
+      "reused": false,
+      "status": "completed",
+      "dev_query_label_accuracy": 0.9980000257492065,
+      "dev_query_label_loss": 0.002915504388511181,
+      "dev_symbol_loss": 0.692996621131897,
+      "dev_next_label_accuracy": 0.9960000514984131,
+      "dev_next_label_loss": 0.011952687986195087
+    }
+  ]
+}

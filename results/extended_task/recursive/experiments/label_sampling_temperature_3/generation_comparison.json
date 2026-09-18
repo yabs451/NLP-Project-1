@@ -1,0 +1,240 @@
+{
+  "condition": "label_sampling_temperature_3",
+  "label_generation": "sampled from softmax(logits / 3.0) over all five labels",
+  "question": "Does query-label performance, generated-symbol behaviour or the attention measures change across extended-task generations?",
+  "evaluator": "results\\evaluation_data\\eval_dev.h5",
+  "evaluation": "teacher forced, identical for every condition; generated_continuation instead lets the model condition on its own output, and the training_data_quality columns describe the data the parent produced",
+  "head_selection": "each model's heads chosen from its own final scores",
+  "checkpoints_saved_per_generation": 55,
+  "checkpoints_analysed_per_generation": [
+    0,
+    1024,
+    2016,
+    5024,
+    10016,
+    20000,
+    40000,
+    80000,
+    160000,
+    280000,
+    540000,
+    1000000
+  ],
+  "generations": [
+    {
+      "generation": 0,
+      "query_label_accuracy": 0.9970000386238098,
+      "query_label_loss": 0.011365378275513649,
+      "symbol_loss": 0.6933944225311279,
+      "symbol_prefers_first": 0.0860000029206276,
+      "next_label_accuracy": 0.9960000514984131,
+      "next_label_loss": 0.015728067606687546,
+      "generated_continuation": {
+        "generated_query_label_accuracy": 0.9970000386238098,
+        "generated_next_label_accuracy": 0.9980000257492065,
+        "generated_chose_context_position_0": 0.5110000371932983
+      },
+      "strongest_induction_score": 0.9773387908935547,
+      "strongest_previous_token_score": 0.9999961848629795,
+      "ablations": {
+        "intact_query_label_accuracy": 0.9970000386238098,
+        "induction_head": 2,
+        "previous_token_head": 1,
+        "query_accuracy_without_induction_head": 0.9940000176429749,
+        "query_accuracy_without_previous_token_head": 0.9880000352859497,
+        "induction_head_ablation_effect": 0.003000020980834961,
+        "previous_token_head_ablation_effect": 0.009000003337860107
+      },
+      "training_data_quality": {
+        "examples": 1000000,
+        "query_label_errors": 0,
+        "query_label_error_rate": 0.0,
+        "next_label_errors": 0,
+        "next_label_error_rate": 0.0,
+        "chose_context_position_0": 0.499447,
+        "distinct_next_symbol_classes": 50,
+        "largest_next_symbol_class_share": 0.020262,
+        "next_symbol_class_entropy_nats": 3.912005754807341,
+        "generated_label_counts": [
+          188451,
+          187307,
+          187256,
+          187105,
+          249881
+        ]
+      }
+    },
+    {
+      "generation": 1,
+      "query_label_accuracy": 0.9880000352859497,
+      "query_label_loss": 0.07564305514097214,
+      "symbol_loss": 0.6928390264511108,
+      "symbol_prefers_first": 0.3270000219345093,
+      "next_label_accuracy": 0.9860000610351562,
+      "next_label_loss": 0.08587761223316193,
+      "generated_continuation": {
+        "generated_query_label_accuracy": 0.9880000352859497,
+        "generated_next_label_accuracy": 0.9790000319480896,
+        "generated_chose_context_position_0": 0.5100000500679016
+      },
+      "strongest_induction_score": 0.9457274675369263,
+      "strongest_previous_token_score": 0.9999711069742783,
+      "ablations": {
+        "intact_query_label_accuracy": 0.9880000352859497,
+        "induction_head": 2,
+        "previous_token_head": 4,
+        "query_accuracy_without_induction_head": 0.9830000400543213,
+        "query_accuracy_without_previous_token_head": 0.9160000681877136,
+        "induction_head_ablation_effect": 0.004999995231628418,
+        "previous_token_head_ablation_effect": 0.07199996709823608
+      },
+      "training_data_quality": {
+        "examples": 1000000,
+        "query_label_errors": 50802,
+        "query_label_error_rate": 0.050802,
+        "next_label_errors": 61889,
+        "next_label_error_rate": 0.061889,
+        "chose_context_position_0": 0.487899,
+        "distinct_next_symbol_classes": 50,
+        "largest_next_symbol_class_share": 0.020284,
+        "next_symbol_class_entropy_nats": 3.911997874395867,
+        "generated_label_counts": [
+          189124,
+          178859,
+          191456,
+          194682,
+          245879
+        ]
+      }
+    },
+    {
+      "generation": 2,
+      "query_label_accuracy": 0.9860000610351562,
+      "query_label_loss": 0.696217954158783,
+      "symbol_loss": 0.6914933323860168,
+      "symbol_prefers_first": 0.26600000262260437,
+      "next_label_accuracy": 0.9810000658035278,
+      "next_label_loss": 0.7194024324417114,
+      "generated_continuation": {
+        "generated_query_label_accuracy": 0.9860000610351562,
+        "generated_next_label_accuracy": 0.9730000495910645,
+        "generated_chose_context_position_0": 0.5110000371932983
+      },
+      "strongest_induction_score": 0.5622512102127075,
+      "strongest_previous_token_score": 0.6361581226163409,
+      "ablations": {
+        "intact_query_label_accuracy": 0.9860000610351562,
+        "induction_head": 0,
+        "previous_token_head": 4,
+        "query_accuracy_without_induction_head": 0.9830000400543213,
+        "query_accuracy_without_previous_token_head": 0.9320000410079956,
+        "induction_head_ablation_effect": 0.003000020980834961,
+        "previous_token_head_ablation_effect": 0.054000020027160645
+      },
+      "training_data_quality": {
+        "examples": 1000000,
+        "query_label_errors": 477839,
+        "query_label_error_rate": 0.477839,
+        "next_label_errors": 520006,
+        "next_label_error_rate": 0.520006,
+        "chose_context_position_0": 0.483167,
+        "distinct_next_symbol_classes": 50,
+        "largest_next_symbol_class_share": 0.02036,
+        "next_symbol_class_entropy_nats": 3.9119839965615952,
+        "generated_label_counts": [
+          186883,
+          175130,
+          193607,
+          219889,
+          224491
+        ]
+      }
+    },
+    {
+      "generation": 3,
+      "query_label_accuracy": 0.5110000371932983,
+      "query_label_loss": 1.4506338834762573,
+      "symbol_loss": 0.6919748783111572,
+      "symbol_prefers_first": 0.24500000476837158,
+      "next_label_accuracy": 0.48900002241134644,
+      "next_label_loss": 1.45664381980896,
+      "generated_continuation": {
+        "generated_query_label_accuracy": 0.5110000371932983,
+        "generated_next_label_accuracy": 0.5160000324249268,
+        "generated_chose_context_position_0": 0.5120000243186951
+      },
+      "strongest_induction_score": 0.0021884762682020664,
+      "strongest_previous_token_score": 0.35170049447290475,
+      "ablations": {
+        "intact_query_label_accuracy": 0.5110000371932983,
+        "induction_head": 6,
+        "previous_token_head": 1,
+        "query_accuracy_without_induction_head": 0.5120000243186951,
+        "query_accuracy_without_previous_token_head": 0.5080000162124634,
+        "induction_head_ablation_effect": -0.0009999871253967285,
+        "previous_token_head_ablation_effect": 0.003000020980834961
+      },
+      "training_data_quality": {
+        "examples": 1000000,
+        "query_label_errors": 713796,
+        "query_label_error_rate": 0.713796,
+        "next_label_errors": 729634,
+        "next_label_error_rate": 0.729634,
+        "chose_context_position_0": 0.480434,
+        "distinct_next_symbol_classes": 50,
+        "largest_next_symbol_class_share": 0.020362,
+        "next_symbol_class_entropy_nats": 3.911991871466218,
+        "generated_label_counts": [
+          196247,
+          192045,
+          190217,
+          213083,
+          208408
+        ]
+      }
+    },
+    {
+      "generation": 4,
+      "query_label_accuracy": 0.48900002241134644,
+      "query_label_loss": 1.5557583570480347,
+      "symbol_loss": 0.6920852065086365,
+      "symbol_prefers_first": 0.24400001764297485,
+      "next_label_accuracy": 0.45600003004074097,
+      "next_label_loss": 1.5582355260849,
+      "generated_continuation": {
+        "generated_query_label_accuracy": 0.48900002241134644,
+        "generated_next_label_accuracy": 0.4390000104904175,
+        "generated_chose_context_position_0": 0.51500004529953
+      },
+      "strongest_induction_score": 0.021071380004286766,
+      "strongest_previous_token_score": 0.7205700813330512,
+      "ablations": {
+        "intact_query_label_accuracy": 0.48900002241134644,
+        "induction_head": 7,
+        "previous_token_head": 1,
+        "query_accuracy_without_induction_head": 0.4870000183582306,
+        "query_accuracy_without_previous_token_head": 0.4910000264644623,
+        "induction_head_ablation_effect": 0.0020000040531158447,
+        "previous_token_head_ablation_effect": -0.0020000040531158447
+      },
+      "training_data_quality": {
+        "examples": 1000000,
+        "query_label_errors": 788744,
+        "query_label_error_rate": 0.788744,
+        "next_label_errors": 790744,
+        "next_label_error_rate": 0.790744,
+        "chose_context_position_0": 0.483892,
+        "distinct_next_symbol_classes": 50,
+        "largest_next_symbol_class_share": 0.020502,
+        "next_symbol_class_entropy_nats": 3.911970117339325,
+        "generated_label_counts": [
+          201111,
+          195817,
+          193546,
+          204878,
+          204648
+        ]
+      }
+    }
+  ]
+}

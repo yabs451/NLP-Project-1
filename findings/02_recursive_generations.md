@@ -78,9 +78,10 @@ the match rests on shared construction plus that spot check.
 
 Generation 0's checkpoint *files* differ from the successors' because the two
 code paths store different optimizer and PRNG state, even though the final
-parameters are equal. The 55 intermediate checkpoints of each model were **not**
-compared against each other; the equality above covers the final parameters and
-the two endpoint files.
+parameters are equal. Each model saves **55 checkpoints, which include the two
+endpoints** — the initialisation and the final model — so 53 are intermediate.
+Those 53 were **not** compared against each other; the equality above covers the
+final parameters and the two endpoint files.
 
 Every quantity we measured is flat across the chain:
 
@@ -171,12 +172,15 @@ important for the measured behaviour.
   where the transition falls in a 40,000-sequence gap.
 - The reserved final-test classes have never been scored.
 
-**Next step.** We intend to discuss the extended task, in which the model also
-predicts a following symbol and its label. Because generated symbols can change
-the input distribution — not only the targets — it offers a route to conditions
-where successors differ from their parent. Whether that produces drift is an
-open question, and any alternative condition needs its own scientific
-justification rather than being chosen to make degradation more likely.
+**What followed.** This finding recorded, at the time, that the natural next step
+was an extended task in which the model also predicts a following symbol and its
+label — because generated symbols can change the input distribution, not only the
+targets, giving a route to conditions where successors differ from their parent.
+That work has since been done: see `findings/04_extended_task_tuning.md` for the
+extended task's own learning-rate search, `findings/05_label_generation_strategies.md`
+for the label-generation comparison, and `findings/06_symbol_distribution_experiments.md`
+for the two symbol-side families. Several of those conditions did produce
+substantial deterioration.
 
 ## Reproduce
 

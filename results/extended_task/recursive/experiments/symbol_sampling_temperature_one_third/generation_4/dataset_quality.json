@@ -1,0 +1,18 @@
+{
+  "examples": 1000000,
+  "query_label_errors": 286,
+  "query_label_error_rate": 0.000286,
+  "next_label_errors": 377,
+  "next_label_error_rate": 0.000377,
+  "chose_context_position_0": 0.135838,
+  "distinct_next_symbol_classes": 50,
+  "largest_next_symbol_class_share": 0.020832,
+  "next_symbol_class_entropy_nats": 3.911912047890245,
+  "generated_label_counts": [
+    188532,
+    187204,
+    187347,
+    186945,
+    249972
+  ]
+}

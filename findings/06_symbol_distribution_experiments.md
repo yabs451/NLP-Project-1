@@ -88,23 +88,38 @@ Largest single-class share at each stage:
 **A sampling weight is not a generated frequency.** At temperature 0.2
 generation 4 one class held 0.9967 of the sampling weight, but that class was
 **not** 99.67% of the generated symbols: it appeared in 0.5000 of the offered
-context slots and was selected 0.5001 of the time. The two context classes must
-differ, so however concentrated the weights become, the dominant class can fill
-only one of the two slots — the offered and selected shares are capped near 0.5,
-and they stay there from temperature 0.2 generation 4 onward. The three stages
-are plotted separately in the left panel for exactly this reason.
+context slots and was selected 0.5001 of the time.
+
+The two limits are different, and only one of them is arithmetic. Because the two
+context classes must differ, a single class can occupy at most one of the two
+slots, so its **offered** share cannot exceed 0.5 however concentrated the weights
+become — that is a genuine cap. Its **selected** share is not capped by anything:
+a parent that always chose the slot holding the dominant class would generate it
+close to 100% of the time. What these runs measured is a selected share near 0.5,
+because the position split stayed near even (0.484–0.517). So the observed
+half-share is a measurement, not a mathematical consequence. The three stages are
+plotted separately in the left panel for exactly this reason.
 
 **Coverage is where the compounding shows.** The number of distinct classes
 selected in a million examples falls 50 → 40 → 12 → 5 along the temperature-0.2
 chain, and 50 → 50 → 34 along temperature 1/3. Chosen-class entropy falls from
 3.9120 nats to 0.6944.
 
-**Classes leave the pool through a finite sample, and the rule then makes that
-permanent.** A class that happens not to be selected in one million examples gets
-measured frequency exactly 0, so `p ** (1/T)` is exactly 0 and it can never be
-offered again in that chain. That is a property of the rule applied to a finite
-sample — it is **not** evidence that the parent assigned that class zero
-probability, and we did not measure the parent's probabilities. By generation 6,
+**Where an empirical zero becomes a permanent zero.** The frequency-estimation
+pass counts symbols over one saved million-example dataset. A class that happens
+not to be selected in that particular sample is recorded at frequency exactly 0.
+Our implementation then computes `w ∝ p ** (1/T)` with no smoothing and no floor,
+so that class receives weight exactly 0, is never offered in the child's
+questions, cannot be selected there either, and is therefore recorded at 0 again
+at the next transition. **The zero is self-perpetuating from that point on, in
+that chain.**
+
+That is a property of this implementation applied to a finite sample. It is
+**not** evidence that the parent assigned the class zero probability — a class
+with a small but non-zero probability can easily be absent from a million draws,
+and we never measured the parent's probabilities. A different choice, such as
+smoothing the counts, would not have this behaviour; we deliberately did not add
+one, so that the rule stayed as specified. By generation 6,
 12 of 50 classes had non-zero weight at temperature 0.2 and 50 of 50 at
 temperature 1/3 (the smallest being 2.2 × 10⁻¹⁴, tiny but non-zero).
 
@@ -112,9 +127,9 @@ temperature 1/3 (the smallest being 2.2 × 10⁻¹⁴, tiny but non-zero).
 have positive weight; every generation here kept at least 12, so all four chains
 ran to generation 6 under the unmodified rule.
 
-Two things did not move in this family: the **context-position split** stayed
-between 0.484 and 0.517 across all generations, and the sharpening never produced
-a positional bias.
+One thing stayed broadly stable in this family: the **context-position split**
+remained between 0.484 and 0.517 across all generations, so sharpening the symbol
+frequencies did not produce a pronounced positional preference.
 
 The availability-adjusted identity measure reads 0.00 to 0.21 across these
 chains, but it is not interpretable once the weights are extreme: when one class
@@ -195,11 +210,12 @@ Share of generated continuations choosing context position 0:
 
 **Positional preference moved a great deal and then plateaued**, settling near
 0.12 in both chains rather than continuing toward 0. **Symbol-identity
-concentration did not move at all**: opening questions are unchanged here, so the
-largest offered share stays at 0.0203 in every dataset, the largest selected
-share stays between 0.0205 and 0.0209, chosen-class entropy stays at 3.9118–3.9120
-against the reference's 3.9120, and all 50 classes are selected in every one of
-the six generations. These two families therefore separate positional bias from
+concentration barely moved**: opening questions are unchanged here, so the largest
+offered share stays at 0.0203 in every dataset, the largest selected share stays
+between 0.0205 and 0.0209, chosen-class entropy stays at 3.9118–3.9120 against the
+reference's 3.9120, and all 50 classes are selected in every one of the six
+generations. Those are small differences on measures that would show a pronounced
+concentration clearly; they are not a demonstration that nothing changed. These two families therefore separate positional bias from
 identity concentration cleanly: this one produces the first and none of the
 second.
 
@@ -276,9 +292,9 @@ generation 7.
 feedback leaves positional preference alone and eventually reduces query-label
 and following-label accuracy, with symbol coverage falling to 5 classes.
 Next-symbol temperature leaves symbol identity alone, produces a large positional
-preference that plateaus near 0.12, degrades the symbol output without bound in
-the observed range, dents the following label, and leaves query-label accuracy
-untouched. Concentration, positional bias and predictive performance are separate
+preference that plateaus near 0.12, degrades the symbol output steadily across
+all six generations without any sign of levelling off within them, dents the
+following label, and leaves query-label accuracy broadly unchanged. Concentration, positional bias and predictive performance are separate
 measurements and these two interventions move different subsets of them.
 
 **None of this identifies a mechanism.** In the context family, concentration,

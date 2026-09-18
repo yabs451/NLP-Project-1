@@ -5,17 +5,8 @@ __pycache__/
 .pytest_cache/
 wandb/
 
-# Local-only material: operational notes, retired comparison code and the
-# working conventions. None of it is needed to reproduce the experiments.
-Development/
+# Local-only material: the working conventions, and retired code and runs kept
+# for reference. Neither is needed to reproduce the experiments, and nothing
+# maintained depends on temporary_checks/.
 temporary_checks/
 CLAUDE.md
-
-# Generated experimental output. Checkpoints and generated datasets are large,
-# so results/ is not tracked; every number a finding relies on is quoted in the
-# finding itself. The class split record is the evaluation protocol and must
-# stay auditable, so it is the one exception.
-results/*
-!results/evaluation_data/
-results/evaluation_data/*
-!results/evaluation_data/class_splits.json

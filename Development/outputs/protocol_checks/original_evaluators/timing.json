@@ -1,0 +1,20 @@
+{
+  "wall_seconds_including_imports_compilation_io": 13.779114799996023,
+  "return_code": 0,
+  "full": false,
+  "protocol": "reproduction",
+  "events": [
+    {
+      "event": "----------0",
+      "elapsed_seconds": 6.852828699993552
+    },
+    {
+      "event": "----------1600",
+      "elapsed_seconds": 12.78454469999997
+    },
+    {
+      "event": "End of training",
+      "elapsed_seconds": 13.354713599997922
+    }
+  ]
+}

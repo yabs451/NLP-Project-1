@@ -1,0 +1,179 @@
+{
+  "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_one_third\\generation_4",
+  "generation": 4,
+  "checkpoints_saved": 55,
+  "checkpoints_analysed": [
+    0,
+    1024,
+    2016,
+    5024,
+    10016,
+    20000,
+    40000,
+    80000,
+    160000,
+    280000,
+    540000,
+    1000000
+  ],
+  "final_dev_scores": {
+    "next_label_accuracy": 0.9910000562667847,
+    "next_label_loss": 0.03987906500697136,
+    "query_label_accuracy": 0.9950000643730164,
+    "query_label_loss": 0.033273402601480484,
+    "symbol_loss": 1.9545772075653076,
+    "symbol_matches_target": 0.503000020980835,
+    "symbol_prefers_first": 0.1080000028014183
+  },
+  "final_generated_scores": {
+    "generated_query_label_accuracy": 0.9950000643730164,
+    "generated_next_label_accuracy": 0.9980000257492065,
+    "generated_chose_context_position_0": 0.15000000596046448
+  },
+  "trajectory": [
+    {
+      "iter": 0,
+      "query_label_accuracy": 0.20900000631809235,
+      "symbol_loss": 0.7572287321090698,
+      "next_label_accuracy": 0.1940000057220459,
+      "max_previous_token_score": 0.16852751507394836,
+      "max_induction_score": 0.005140309687703848
+    },
+    {
+      "iter": 1024,
+      "query_label_accuracy": 0.5060000419616699,
+      "symbol_loss": 1.091546654701233,
+      "next_label_accuracy": 0.5080000162124634,
+      "max_previous_token_score": 0.08381297014189092,
+      "max_induction_score": 0.020250702276825905
+    },
+    {
+      "iter": 2016,
+      "query_label_accuracy": 0.4970000088214874,
+      "symbol_loss": 1.1524155139923096,
+      "next_label_accuracy": 0.49900001287460327,
+      "max_previous_token_score": 0.027940862171579605,
+      "max_induction_score": 0.01986035890877247
+    },
+    {
+      "iter": 5024,
+      "query_label_accuracy": 0.49400001764297485,
+      "symbol_loss": 1.4682989120483398,
+      "next_label_accuracy": 0.4930000305175781,
+      "max_previous_token_score": 0.08886862192468516,
+      "max_induction_score": 0.024388378486037254
+    },
+    {
+      "iter": 10016,
+      "query_label_accuracy": 0.5350000262260437,
+      "symbol_loss": 1.703285813331604,
+      "next_label_accuracy": 0.5049999952316284,
+      "max_previous_token_score": 0.08898437801798163,
+      "max_induction_score": 0.03917080909013748
+    },
+    {
+      "iter": 20000,
+      "query_label_accuracy": 0.8830000162124634,
+      "symbol_loss": 1.8909271955490112,
+      "next_label_accuracy": 0.6600000262260437,
+      "max_previous_token_score": 0.23568064680606476,
+      "max_induction_score": 0.12010114639997482
+    },
+    {
+      "iter": 40000,
+      "query_label_accuracy": 0.9570000171661377,
+      "symbol_loss": 1.9038186073303223,
+      "next_label_accuracy": 0.8470000624656677,
+      "max_previous_token_score": 0.5612665667775824,
+      "max_induction_score": 0.16758009791374207
+    },
+    {
+      "iter": 80000,
+      "query_label_accuracy": 0.9650000333786011,
+      "symbol_loss": 1.7994358539581299,
+      "next_label_accuracy": 0.9070000648498535,
+      "max_previous_token_score": 0.8740783792763518,
+      "max_induction_score": 0.21191203594207764
+    },
+    {
+      "iter": 160000,
+      "query_label_accuracy": 0.9850000739097595,
+      "symbol_loss": 2.0364010334014893,
+      "next_label_accuracy": 0.9350000619888306,
+      "max_previous_token_score": 0.9396112716463505,
+      "max_induction_score": 0.4751744568347931
+    },
+    {
+      "iter": 280000,
+      "query_label_accuracy": 0.9940000176429749,
+      "symbol_loss": 1.9127718210220337,
+      "next_label_accuracy": 0.9800000190734863,
+      "max_previous_token_score": 0.9258392077499387,
+      "max_induction_score": 0.8476167321205139
+    },
+    {
+      "iter": 540000,
+      "query_label_accuracy": 0.9880000352859497,
+      "symbol_loss": 2.1716225147247314,
+      "next_label_accuracy": 0.9810000658035278,
+      "max_previous_token_score": 0.9780278156314777,
+      "max_induction_score": 0.9324887990951538
+    },
+    {
+      "iter": 1000000,
+      "query_label_accuracy": 0.9950000643730164,
+      "symbol_loss": 1.9545772075653076,
+      "next_label_accuracy": 0.9910000562667847,
+      "max_previous_token_score": 0.99986090867254,
+      "max_induction_score": 0.9565175175666809
+    }
+  ],
+  "previous_token_scores_layer0": [
+    0.9463863756884521,
+    -0.4580412285049579,
+    0.19056043259139702,
+    0.30419069386247105,
+    -0.47863436868917664,
+    0.02279447778939134,
+    -0.1473954536353624,
+    0.99986090867254
+  ],
+  "induction_scores_layer1": [
+    0.06938087195158005,
+    0.5549902319908142,
+    0.4131369888782501,
+    0.8681449294090271,
+    0.9565175175666809,
+    0.15398307144641876,
+    0.9307764768600464,
+    0.06884562969207764
+  ],
+  "ablations": {
+    "intact_query_label_accuracy": 0.9950000643730164,
+    "induction_head": 4,
+    "previous_token_head": 7,
+    "query_accuracy_without_induction_head": 0.987000048160553,
+    "query_accuracy_without_previous_token_head": 0.9690000414848328,
+    "induction_head_ablation_effect": 0.008000016212463379,
+    "previous_token_head_ablation_effect": 0.026000022888183594
+  },
+  "training_data_quality": {
+    "examples": 1000000,
+    "query_label_errors": 286,
+    "query_label_error_rate": 0.000286,
+    "next_label_errors": 377,
+    "next_label_error_rate": 0.000377,
+    "chose_context_position_0": 0.135838,
+    "distinct_next_symbol_classes": 50,
+    "largest_next_symbol_class_share": 0.020832,
+    "next_symbol_class_entropy_nats": 3.911912047890245,
+    "generated_label_counts": [
+      188532,
+      187204,
+      187347,
+      186945,
+      249972
+    ]
+  },
+  "note": "final_dev_scores are teacher forced: each position is conditioned on the correct earlier continuation tokens. final_generated_scores let the model condition on its own output instead. training_data_quality describes the generated data this model was trained on."
+}

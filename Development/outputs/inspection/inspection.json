@@ -1,0 +1,284 @@
+{
+  "python": "3.10.11 (tags/v3.10.11:7d4cc5a, Apr  5 2023, 00:38:17) [MSC v.1929 64 bit (AMD64)]",
+  "executable": "C:\\Users\\13327\\OneDrive\\Desktop\\NLP project\\NLP-Project-1\\.venv\\Scripts\\python.exe",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "windows": [
+    "10",
+    "10.0.26200",
+    "SP0",
+    "Multiprocessor Free"
+  ],
+  "processor": "Intel64 Family 6 Model 141 Stepping 1, GenuineIntel",
+  "logical_cpus": 12,
+  "jax_devices": [
+    "TFRT_CPU_0"
+  ],
+  "jax_enable_x64": false,
+  "upstream": {
+    "vendored": true,
+    "note": "the authors' files are tracked directly in this repository, not as a submodule, so they have no commit of their own to query",
+    "commit_recorded_in_report_01": "85b895c720844e795734b9391b32d2619065f9a1",
+    "our_repository_commit": "05cfb4bcdd29529e63d192f6d94cf02d0b754cca",
+    "local_modifications_under_upstream": "",
+    "tracked_files": 35,
+    "content_sha256": "a40208af9176274af24d14c399c8f0352d3723152c19e55e6d538aff549f78a8"
+  },
+  "packages": {
+    "absl-py": "2.5.0",
+    "chex": "0.1.86",
+    "colorama": "0.4.6",
+    "contourpy": "1.3.2",
+    "cycler": "0.12.1",
+    "equinox": "0.11.4",
+    "fonttools": "4.65.0",
+    "h5py": "3.11.0",
+    "jax": "0.4.26",
+    "jaxlib": "0.4.26",
+    "jaxtyping": "0.2.28",
+    "kiwisolver": "1.5.1",
+    "matplotlib": "3.8.4",
+    "ml-dtypes": "0.3.2",
+    "nptyping": "2.5.0",
+    "numpy": "1.26.4",
+    "opt_einsum": "3.4.0",
+    "optax": "0.2.2",
+    "packaging": "26.3",
+    "pillow": "12.3.0",
+    "pip": "23.0.1",
+    "pyparsing": "3.3.2",
+    "python-dateutil": "2.9.0.post0",
+    "scipy": "1.12.0",
+    "setuptools": "65.5.0",
+    "six": "1.17.0",
+    "toolz": "1.1.0",
+    "tqdm": "4.66.4",
+    "typeguard": "2.13.3",
+    "typing_extensions": "4.16.0"
+  },
+  "data": {
+    "path": "C:\\Users\\13327\\OneDrive\\Desktop\\NLP project\\NLP-Project-1\\upstream\\icl-dynamics\\omniglot_resnet18_randomized_order_s0.h5",
+    "bytes": 16638016,
+    "sha256": "a8b8fa1f25d62e077b658c590f77e24447894fa325d97651dba22c6621e62b5b",
+    "structure": {
+      "class_order": {
+        "kind": "dataset",
+        "attributes": {},
+        "shape": [
+          1623
+        ],
+        "dtype": "int64",
+        "compression": null
+      },
+      "resnet18": {
+        "kind": "group",
+        "attributes": {}
+      },
+      "resnet18/224": {
+        "kind": "group",
+        "attributes": {}
+      },
+      "resnet18/224/feat": {
+        "kind": "dataset",
+        "attributes": {},
+        "shape": [
+          1623,
+          5,
+          512
+        ],
+        "dtype": "float32",
+        "compression": null
+      }
+    },
+    "class_order_is_permutation": true,
+    "class_order_first_10": [
+      501,
+      752,
+      1520,
+      883,
+      107,
+      962,
+      679,
+      1265,
+      1211,
+      970
+    ],
+    "feature_min": 0.0,
+    "feature_max": 11.471415519714355,
+    "finite": true
+  },
+  "label_pairs": {
+    "train": [
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "val": [
+      [
+        1,
+        3
+      ],
+      [
+        0,
+        2
+      ]
+    ],
+    "test": []
+  },
+  "sample_shapes": {
+    "examples": [
+      32,
+      3,
+      512
+    ],
+    "labels": [
+      32,
+      3
+    ]
+  },
+  "sample_dtypes": {
+    "examples": "float32",
+    "labels": "int32"
+  },
+  "examples": [
+    {
+      "classes": [
+        13,
+        44,
+        13
+      ],
+      "exemplars": [
+        0,
+        0,
+        0
+      ],
+      "labels": [
+        2,
+        4,
+        2
+      ],
+      "same_classes_new_labels": [
+        4,
+        2,
+        4
+      ]
+    },
+    {
+      "classes": [
+        33,
+        43,
+        33
+      ],
+      "exemplars": [
+        0,
+        0,
+        0
+      ],
+      "labels": [
+        0,
+        1,
+        0
+      ],
+      "same_classes_new_labels": [
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "classes": [
+        17,
+        28,
+        17
+      ],
+      "exemplars": [
+        0,
+        0,
+        0
+      ],
+      "labels": [
+        4,
+        3,
+        4
+      ],
+      "same_classes_new_labels": [
+        1,
+        2,
+        1
+      ]
+    },
+    {
+      "classes": [
+        1,
+        47,
+        1
+      ],
+      "exemplars": [
+        0,
+        0,
+        0
+      ],
+      "labels": [
+        4,
+        1,
+        4
+      ],
+      "same_classes_new_labels": [
+        0,
+        3,
+        0
+      ]
+    },
+    {
+      "classes": [
+        11,
+        38,
+        11
+      ],
+      "exemplars": [
+        0,
+        0,
+        0
+      ],
+      "labels": [
+        0,
+        3,
+        0
+      ],
+      "same_classes_new_labels": [
+        1,
+        0,
+        1
+      ]
+    }
+  ],
+  "data_checks_passed": true
+}

@@ -71,10 +71,12 @@ a confidence interval:
 **Selected learning rate: 1e-3.** All 18 candidates trained to completion; none
 diverged, and every loss stayed finite.
 
-Mean accuracy increased at every step up the tested range, but by steadily
-smaller amounts: 1e-6 → 1e-5 gains 45.2 percentage points, while 1e-5 → 1e-3
-gains 3.0. The tested rates are unevenly spaced, so these are observed gains
-between the settings tried rather than a characterised curve.
+Mean accuracy increased across the tested rates, with much smaller gains toward
+the upper end: 1e-6 → 1e-5 gains 45.2 percentage points, while 1e-5 → 1e-3 gains
+3.0. The adjacent gains are not monotonically decreasing — in percentage points
+they run 29.7, 15.5, 1.13, 1.33, 0.50, so the step into 1e-4 is slightly larger
+than the step before it. The tested rates are unevenly spaced, so these are
+observed gains between the settings tried rather than a characterised curve.
 
 Mean loss also falls across the range, from 0.0928 at 1e-5 to 0.0099 at 1e-3 —
 that is, the higher-rate models assign a higher geometric-mean probability to

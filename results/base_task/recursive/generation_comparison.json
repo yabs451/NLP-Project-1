@@ -1,0 +1,139 @@
+{
+  "question": "Does induction-circuit function weaken across recursive generations before overall prediction accuracy declines?",
+  "chain": "one chain, generations 0 to 4",
+  "evaluator": "results\\evaluation_data\\eval_dev.h5",
+  "head_selection": "each model's heads are chosen from its own final scores, never inherited from another generation",
+  "selected_heads_identical_across_generations": {
+    "induction_layer1_head": true,
+    "previous_token_layer0_head": true,
+    "comparison_layer1_head": true,
+    "comparison_layer0_head": true
+  },
+  "selected_heads_per_generation": {
+    "induction_layer1_head": [
+      2,
+      2,
+      2,
+      2,
+      2
+    ],
+    "previous_token_layer0_head": [
+      7,
+      7,
+      7,
+      7,
+      7
+    ],
+    "comparison_layer1_head": [
+      6,
+      6,
+      6,
+      6,
+      6
+    ],
+    "comparison_layer0_head": [
+      3,
+      3,
+      3,
+      3,
+      3
+    ]
+  },
+  "generations": [
+    {
+      "generation": 0,
+      "run": "results\\base_task\\recursive\\generation_0",
+      "dev_accuracy": 0.9960000514984131,
+      "dev_loss": 0.011361266486346722,
+      "strongest_induction_score": 0.9596402645111084,
+      "strongest_previous_token_score": 0.9999405961235346,
+      "heads_with_positive_induction_score": 7,
+      "selected_heads": {
+        "induction_layer1_head": 2,
+        "previous_token_layer0_head": 7,
+        "comparison_layer1_head": 6,
+        "comparison_layer0_head": 3
+      },
+      "accuracy_lost_ablating_induction_head": 0.003000020980834961,
+      "accuracy_lost_ablating_previous_token_head": 0.027000010013580322,
+      "parent_target_error_rate": null,
+      "parent_out_of_context_rate": null
+    },
+    {
+      "generation": 1,
+      "run": "results\\base_task\\recursive\\generation_1",
+      "dev_accuracy": 0.9960000514984131,
+      "dev_loss": 0.011361266486346722,
+      "strongest_induction_score": 0.9596402645111084,
+      "strongest_previous_token_score": 0.9999405961235346,
+      "heads_with_positive_induction_score": 7,
+      "selected_heads": {
+        "induction_layer1_head": 2,
+        "previous_token_layer0_head": 7,
+        "comparison_layer1_head": 6,
+        "comparison_layer0_head": 3
+      },
+      "accuracy_lost_ablating_induction_head": 0.003000020980834961,
+      "accuracy_lost_ablating_previous_token_head": 0.027000010013580322,
+      "parent_target_error_rate": 0.0,
+      "parent_out_of_context_rate": 0.0
+    },
+    {
+      "generation": 2,
+      "run": "results\\base_task\\recursive\\generation_2",
+      "dev_accuracy": 0.9960000514984131,
+      "dev_loss": 0.011361266486346722,
+      "strongest_induction_score": 0.9596402645111084,
+      "strongest_previous_token_score": 0.9999405961235346,
+      "heads_with_positive_induction_score": 7,
+      "selected_heads": {
+        "induction_layer1_head": 2,
+        "previous_token_layer0_head": 7,
+        "comparison_layer1_head": 6,
+        "comparison_layer0_head": 3
+      },
+      "accuracy_lost_ablating_induction_head": 0.003000020980834961,
+      "accuracy_lost_ablating_previous_token_head": 0.027000010013580322,
+      "parent_target_error_rate": 0.0,
+      "parent_out_of_context_rate": 0.0
+    },
+    {
+      "generation": 3,
+      "run": "results\\base_task\\recursive\\generation_3",
+      "dev_accuracy": 0.9960000514984131,
+      "dev_loss": 0.011361266486346722,
+      "strongest_induction_score": 0.9596402645111084,
+      "strongest_previous_token_score": 0.9999405961235346,
+      "heads_with_positive_induction_score": 7,
+      "selected_heads": {
+        "induction_layer1_head": 2,
+        "previous_token_layer0_head": 7,
+        "comparison_layer1_head": 6,
+        "comparison_layer0_head": 3
+      },
+      "accuracy_lost_ablating_induction_head": 0.003000020980834961,
+      "accuracy_lost_ablating_previous_token_head": 0.027000010013580322,
+      "parent_target_error_rate": 0.0,
+      "parent_out_of_context_rate": 0.0
+    },
+    {
+      "generation": 4,
+      "run": "results\\base_task\\recursive\\generation_4",
+      "dev_accuracy": 0.9960000514984131,
+      "dev_loss": 0.011361266486346722,
+      "strongest_induction_score": 0.9596402645111084,
+      "strongest_previous_token_score": 0.9999405961235346,
+      "heads_with_positive_induction_score": 7,
+      "selected_heads": {
+        "induction_layer1_head": 2,
+        "previous_token_layer0_head": 7,
+        "comparison_layer1_head": 6,
+        "comparison_layer0_head": 3
+      },
+      "accuracy_lost_ablating_induction_head": 0.003000020980834961,
+      "accuracy_lost_ablating_previous_token_head": 0.027000010013580322,
+      "parent_target_error_rate": 0.0,
+      "parent_out_of_context_rate": 0.0
+    }
+  ]
+}

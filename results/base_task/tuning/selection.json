@@ -1,0 +1,144 @@
+{
+  "selection_rule": "highest mean final accuracy over init seeds 5, 6 and 7, compared unrounded; ties broken by lowest mean loss, then by preferring 1e-05, then the smaller rate",
+  "scored_on": "results\\evaluation_data\\eval_dev.h5",
+  "selected_learning_rate": 0.001,
+  "claim": "best among the tested learning rates under this training budget",
+  "winner_at_grid_boundary": true,
+  "mean_accuracy": 0.9973333676656088,
+  "per_seed_accuracy": {
+    "5": 0.9960000514984131,
+    "6": 0.9980000257492065,
+    "7": 0.9980000257492065
+  },
+  "generation_0_seed": 5,
+  "generation_0_run": "results\\base_task\\tuning\\learning_rate_0.001_init_seed_5",
+  "generation_0_checkpoint": "results\\base_task\\tuning\\learning_rate_0.001_init_seed_5\\checkpoints\\00001000000.eqx",
+  "per_rate_summary": [
+    {
+      "learning_rate": 1e-06,
+      "seeds_scored": [
+        5,
+        6,
+        7
+      ],
+      "per_seed_accuracy": {
+        "5": 0.5300000309944153,
+        "6": 0.49500003457069397,
+        "7": 0.5220000147819519
+      },
+      "per_seed_loss": {
+        "5": 0.751013457775116,
+        "6": 0.7688679695129395,
+        "7": 0.7580737471580505
+      },
+      "mean_accuracy": 0.5156666934490204,
+      "std_accuracy": 0.014974047699152697,
+      "mean_loss": 0.7593183914820353
+    },
+    {
+      "learning_rate": 3e-06,
+      "seeds_scored": [
+        5,
+        6,
+        7
+      ],
+      "per_seed_accuracy": {
+        "5": 0.8440000414848328,
+        "6": 0.7640000581741333,
+        "7": 0.8300000429153442
+      },
+      "per_seed_loss": {
+        "5": 0.36836323142051697,
+        "6": 0.4927227795124054,
+        "7": 0.3795109987258911
+      },
+      "mean_accuracy": 0.8126667141914368,
+      "std_accuracy": 0.03488392701437464,
+      "mean_loss": 0.4135323365529378
+    },
+    {
+      "learning_rate": 1e-05,
+      "seeds_scored": [
+        5,
+        6,
+        7
+      ],
+      "per_seed_accuracy": {
+        "5": 0.9670000672340393,
+        "6": 0.9720000624656677,
+        "7": 0.9640000462532043
+      },
+      "per_seed_loss": {
+        "5": 0.08278566598892212,
+        "6": 0.08254867792129517,
+        "7": 0.11316568404436111
+      },
+      "mean_accuracy": 0.9676667253176371,
+      "std_accuracy": 0.0032998373293481164,
+      "mean_loss": 0.09283334265152614
+    },
+    {
+      "learning_rate": 3e-05,
+      "seeds_scored": [
+        5,
+        6,
+        7
+      ],
+      "per_seed_accuracy": {
+        "5": 0.9740000367164612,
+        "6": 0.9810000658035278,
+        "7": 0.9820000529289246
+      },
+      "per_seed_loss": {
+        "5": 0.09503845125436783,
+        "6": 0.08152175694704056,
+        "7": 0.07005304843187332
+      },
+      "mean_accuracy": 0.9790000518163046,
+      "std_accuracy": 0.0035590360878320114,
+      "mean_loss": 0.08220441887776057
+    },
+    {
+      "learning_rate": 0.0001,
+      "seeds_scored": [
+        5,
+        6,
+        7
+      ],
+      "per_seed_accuracy": {
+        "5": 0.9920000433921814,
+        "6": 0.9920000433921814,
+        "7": 0.9930000305175781
+      },
+      "per_seed_loss": {
+        "5": 0.025781681761145592,
+        "6": 0.036508746445178986,
+        "7": 0.02104196324944496
+      },
+      "mean_accuracy": 0.9923333724339803,
+      "std_accuracy": 0.00047139845164484613,
+      "mean_loss": 0.027777463818589847
+    },
+    {
+      "learning_rate": 0.001,
+      "seeds_scored": [
+        5,
+        6,
+        7
+      ],
+      "per_seed_accuracy": {
+        "5": 0.9960000514984131,
+        "6": 0.9980000257492065,
+        "7": 0.9980000257492065
+      },
+      "per_seed_loss": {
+        "5": 0.011361266486346722,
+        "6": 0.008841482922434807,
+        "7": 0.009590416215360165
+      },
+      "mean_accuracy": 0.9973333676656088,
+      "std_accuracy": 0.0009427969032896923,
+      "mean_loss": 0.009931055208047232
+    }
+  ]
+}

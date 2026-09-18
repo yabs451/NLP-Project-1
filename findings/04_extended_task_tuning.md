@@ -34,9 +34,14 @@ development coin flips and the evaluation questions are the same for all 18. The
 three seeds are repeated starting conditions and give a limited picture of
 initialisation variability, from three samples.
 
-**The selection rule was fixed in the script before any result was inspected**,
-written into `results/extended_task/tuning/results.json` at the start of the run,
-and not revised afterwards:
+**What was fixed in advance, precisely.** The selection rule below was written
+into the script and into `results/extended_task/tuning/results.json` before any
+candidate of *this* search was trained or scored, and it was not revised
+afterwards. It was not, however, chosen in ignorance of everything: an
+extended-task model at 1e-05 and seed 5 already existed from earlier work, and
+its development scores were known. That model became one of the eighteen grid
+cells. So the honest statement is that the rule preceded the new results, not
+that the project was planned before any result existed:
 
 1. highest unrounded mean final **query-label** development accuracy over seeds
    5, 6 and 7;
@@ -69,10 +74,12 @@ and there were no implementation failures. The spread column is the
 
 **Selected learning rate: 1e-3.**
 
-Mean accuracy rose at every step up the tested range, by steadily smaller
-amounts: 1e-6 → 1e-5 gains 43.5 percentage points, 1e-5 → 1e-3 gains 4.1. The
-tested rates are unevenly spaced, so these are observed gains between the
-settings tried, not a characterised curve.
+Mean accuracy increased across the tested rates, with much smaller gains toward
+the upper end: 1e-6 → 1e-5 gains 43.5 percentage points, 1e-5 → 1e-3 gains 4.1.
+In this grid the adjacent gains do happen to decrease at every step (27.8, 15.7,
+1.77, 1.63, 0.67 percentage points), which the base-task grid did not. The tested
+rates are unevenly spaced, so these are observed gains between the settings
+tried, not a characterised curve.
 
 ### The two recorded side measures
 
@@ -90,12 +97,19 @@ chosen the same rate, but it was not part of the rule.
 
 Symbol loss behaves differently, and this is the more interesting row. The
 next-symbol target is a fair coin flip, so no model can do better in expectation
-than learn that distribution, giving a floor of ln 2 ≈ 0.6931; on a finite
+than predict that distribution, giving a floor of ln 2 ≈ 0.6931; on a finite
 1,000-question sample an individual value can land slightly below it. Every
 rate's mean sits **at or slightly above** the floor (0.6933 to 0.7070), and the
-higher rates sit closer. The symbol head is therefore behaving as intended at
-every usable rate, and this measure separates the candidates much less than the
-label measures do, because there is very little room above the floor.
+higher rates sit closer.
+
+Two things that measure does **not** establish. Cross-entropy has no upper bound
+near ln 2 — a confidently wrong symbol head can score far above it, as the
+next-symbol temperature experiments later showed, reaching 5.75 nats. The
+candidates here simply happened to cluster near the floor, which is why this row
+separates them much less than the label measures do. And a mean near ln 2 is
+consistent with the head predicting the fair-coin target distribution; it does
+not show that every individual conditional prediction is correct, which we did
+not measure.
 
 ## Interpretation
 
@@ -107,9 +121,12 @@ rate or what they were optimising for, and nothing about how these rates would
 compare under different settings.
 
 The 1e-6 result is consistent with **insufficient learning within this budget**
-rather than divergence: losses stayed finite, and final query accuracy was near
-50% — the level a model reaches by answering within the context without reliably
-picking the right one of the two labels.
+rather than divergence: losses stayed finite and final query accuracy was near
+50%. On the base task a direct diagnostic supported reading that level as
+answering within the context without reliably choosing between the two labels
+(finding 01). **No such diagnostic was run on the extended task**, so here 50% is
+only a number close to the two-way chance baseline; we have not shown that these
+models restricted their predictions to the two context labels.
 
 **The winner is at the edge of the tested range.** The correct description is
 *best among the tested rates under this training budget*, not the best learning

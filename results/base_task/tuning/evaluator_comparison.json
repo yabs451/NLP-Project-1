@@ -1,0 +1,406 @@
+{
+  "purpose": "Compare the two development evaluators on the same 15 saved models. The 1,000-question scores were computed fresh from the saved final checkpoints; the 10,000-question scores are read from results.json.",
+  "evaluators": {
+    "1,000 questions": {
+      "file": "results\\evaluation_data\\eval_dev.h5",
+      "source": "freshly evaluated from saved final checkpoints"
+    },
+    "10,000 questions": {
+      "file": "results\\evaluation_data\\eval_dev_large.h5",
+      "source": "read from results.json, not recomputed"
+    }
+  },
+  "selection_rule": "highest mean accuracy over seeds 5, 6 and 7; exact ties use lowest mean loss; remaining ties prefer 1e-05, otherwise the smaller rate",
+  "generation_0_seed": 5,
+  "selected_learning_rate": {
+    "1,000 questions": 0.0001,
+    "10,000 questions": 0.0001
+  },
+  "selection_agrees_across_evaluators": true,
+  "per_rate_summary": {
+    "1,000 questions": [
+      {
+        "learning_rate": 1e-06,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.5300000309944153,
+          "6": 0.49500003457069397,
+          "7": 0.5220000147819519
+        },
+        "per_seed_loss": {
+          "5": 0.751013457775116,
+          "6": 0.7688679695129395,
+          "7": 0.7580737471580505
+        },
+        "mean_accuracy": 0.5156666934490204,
+        "std_accuracy": 0.014974047699152697,
+        "mean_loss": 0.7593183914820353
+      },
+      {
+        "learning_rate": 3e-06,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.8440000414848328,
+          "6": 0.7640000581741333,
+          "7": 0.8300000429153442
+        },
+        "per_seed_loss": {
+          "5": 0.36836323142051697,
+          "6": 0.4927227795124054,
+          "7": 0.3795109987258911
+        },
+        "mean_accuracy": 0.8126667141914368,
+        "std_accuracy": 0.03488392701437464,
+        "mean_loss": 0.4135323365529378
+      },
+      {
+        "learning_rate": 1e-05,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.9670000672340393,
+          "6": 0.9720000624656677,
+          "7": 0.9640000462532043
+        },
+        "per_seed_loss": {
+          "5": 0.08278566598892212,
+          "6": 0.08254867792129517,
+          "7": 0.11316568404436111
+        },
+        "mean_accuracy": 0.9676667253176371,
+        "std_accuracy": 0.0032998373293481164,
+        "mean_loss": 0.09283334265152614
+      },
+      {
+        "learning_rate": 3e-05,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.9740000367164612,
+          "6": 0.9810000658035278,
+          "7": 0.9820000529289246
+        },
+        "per_seed_loss": {
+          "5": 0.09503845125436783,
+          "6": 0.08152175694704056,
+          "7": 0.07005304843187332
+        },
+        "mean_accuracy": 0.9790000518163046,
+        "std_accuracy": 0.0035590360878320114,
+        "mean_loss": 0.08220441887776057
+      },
+      {
+        "learning_rate": 0.0001,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.9920000433921814,
+          "6": 0.9920000433921814,
+          "7": 0.9930000305175781
+        },
+        "per_seed_loss": {
+          "5": 0.025781681761145592,
+          "6": 0.036508746445178986,
+          "7": 0.02104196324944496
+        },
+        "mean_accuracy": 0.9923333724339803,
+        "std_accuracy": 0.00047139845164484613,
+        "mean_loss": 0.027777463818589847
+      }
+    ],
+    "10,000 questions": [
+      {
+        "learning_rate": 1e-06,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.5223999619483948,
+          "6": 0.5184000134468079,
+          "7": 0.5184000134468079
+        },
+        "per_seed_loss": {
+          "5": 0.7539530992507935,
+          "6": 0.7576150298118591,
+          "7": 0.7596092820167542
+        },
+        "mean_accuracy": 0.5197333296140035,
+        "std_accuracy": 0.0018855938065793845,
+        "mean_loss": 0.7570591370264689
+      },
+      {
+        "learning_rate": 3e-06,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.8382999897003174,
+          "6": 0.7655999660491943,
+          "7": 0.8442999720573425
+        },
+        "per_seed_loss": {
+          "5": 0.3843582570552826,
+          "6": 0.4970451891422272,
+          "7": 0.3753661513328552
+        },
+        "mean_accuracy": 0.8160666426022848,
+        "std_accuracy": 0.03576929809027883,
+        "mean_loss": 0.41892319917678833
+      },
+      {
+        "learning_rate": 1e-05,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.9558999538421631,
+          "6": 0.9685999751091003,
+          "7": 0.9587000012397766
+        },
+        "per_seed_loss": {
+          "5": 0.11772697418928146,
+          "6": 0.09158800542354584,
+          "7": 0.1334197223186493
+        },
+        "mean_accuracy": 0.9610666433970133,
+        "std_accuracy": 0.005448142274847593,
+        "mean_loss": 0.11424490064382553
+      },
+      {
+        "learning_rate": 3e-05,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.971299946308136,
+          "6": 0.9817999601364136,
+          "7": 0.9765999913215637
+        },
+        "per_seed_loss": {
+          "5": 0.12231013923883438,
+          "6": 0.08407405018806458,
+          "7": 0.10459131747484207
+        },
+        "mean_accuracy": 0.9765666325887045,
+        "std_accuracy": 0.004286677594773418,
+        "mean_loss": 0.10365850230058034
+      },
+      {
+        "learning_rate": 0.0001,
+        "seeds_scored": [
+          5,
+          6,
+          7
+        ],
+        "per_seed_accuracy": {
+          "5": 0.9888999462127686,
+          "6": 0.9917999505996704,
+          "7": 0.9926999807357788
+        },
+        "per_seed_loss": {
+          "5": 0.04189539700746536,
+          "6": 0.03410514071583748,
+          "7": 0.02884836308658123
+        },
+        "mean_accuracy": 0.9911332925160726,
+        "std_accuracy": 0.0016213965881994405,
+        "mean_loss": 0.03494963360329469
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "candidate": "learning_rate_1e-06_init_seed_5",
+      "learning_rate": 1e-06,
+      "init_seed": 5,
+      "run": "results\\base_task\\tuning\\learning_rate_1e-06_init_seed_5",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.5300000309944153,
+      "fresh_1000_question_loss": 0.751013457775116,
+      "recorded_10000_question_accuracy": 0.5223999619483948,
+      "recorded_10000_question_loss": 0.7539530992507935
+    },
+    {
+      "candidate": "learning_rate_1e-06_init_seed_6",
+      "learning_rate": 1e-06,
+      "init_seed": 6,
+      "run": "results\\base_task\\tuning\\learning_rate_1e-06_init_seed_6",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.49500003457069397,
+      "fresh_1000_question_loss": 0.7688679695129395,
+      "recorded_10000_question_accuracy": 0.5184000134468079,
+      "recorded_10000_question_loss": 0.7576150298118591
+    },
+    {
+      "candidate": "learning_rate_1e-06_init_seed_7",
+      "learning_rate": 1e-06,
+      "init_seed": 7,
+      "run": "results\\base_task\\tuning\\learning_rate_1e-06_init_seed_7",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.5220000147819519,
+      "fresh_1000_question_loss": 0.7580737471580505,
+      "recorded_10000_question_accuracy": 0.5184000134468079,
+      "recorded_10000_question_loss": 0.7596092820167542
+    },
+    {
+      "candidate": "learning_rate_3e-06_init_seed_5",
+      "learning_rate": 3e-06,
+      "init_seed": 5,
+      "run": "results\\base_task\\tuning\\learning_rate_3e-06_init_seed_5",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.8440000414848328,
+      "fresh_1000_question_loss": 0.36836323142051697,
+      "recorded_10000_question_accuracy": 0.8382999897003174,
+      "recorded_10000_question_loss": 0.3843582570552826
+    },
+    {
+      "candidate": "learning_rate_3e-06_init_seed_6",
+      "learning_rate": 3e-06,
+      "init_seed": 6,
+      "run": "results\\base_task\\tuning\\learning_rate_3e-06_init_seed_6",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.7640000581741333,
+      "fresh_1000_question_loss": 0.4927227795124054,
+      "recorded_10000_question_accuracy": 0.7655999660491943,
+      "recorded_10000_question_loss": 0.4970451891422272
+    },
+    {
+      "candidate": "learning_rate_3e-06_init_seed_7",
+      "learning_rate": 3e-06,
+      "init_seed": 7,
+      "run": "results\\base_task\\tuning\\learning_rate_3e-06_init_seed_7",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.8300000429153442,
+      "fresh_1000_question_loss": 0.3795109987258911,
+      "recorded_10000_question_accuracy": 0.8442999720573425,
+      "recorded_10000_question_loss": 0.3753661513328552
+    },
+    {
+      "candidate": "learning_rate_1e-05_init_seed_5",
+      "learning_rate": 1e-05,
+      "init_seed": 5,
+      "run": "results\\base_task\\tuning\\learning_rate_1e-05_init_seed_5",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9670000672340393,
+      "fresh_1000_question_loss": 0.08278566598892212,
+      "recorded_10000_question_accuracy": 0.9558999538421631,
+      "recorded_10000_question_loss": 0.11772697418928146
+    },
+    {
+      "candidate": "learning_rate_1e-05_init_seed_6",
+      "learning_rate": 1e-05,
+      "init_seed": 6,
+      "run": "results\\base_task\\tuning\\learning_rate_1e-05_init_seed_6",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9720000624656677,
+      "fresh_1000_question_loss": 0.08254867792129517,
+      "recorded_10000_question_accuracy": 0.9685999751091003,
+      "recorded_10000_question_loss": 0.09158800542354584
+    },
+    {
+      "candidate": "learning_rate_1e-05_init_seed_7",
+      "learning_rate": 1e-05,
+      "init_seed": 7,
+      "run": "results\\base_task\\tuning\\learning_rate_1e-05_init_seed_7",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9640000462532043,
+      "fresh_1000_question_loss": 0.11316568404436111,
+      "recorded_10000_question_accuracy": 0.9587000012397766,
+      "recorded_10000_question_loss": 0.1334197223186493
+    },
+    {
+      "candidate": "learning_rate_3e-05_init_seed_5",
+      "learning_rate": 3e-05,
+      "init_seed": 5,
+      "run": "results\\base_task\\tuning\\learning_rate_3e-05_init_seed_5",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9740000367164612,
+      "fresh_1000_question_loss": 0.09503845125436783,
+      "recorded_10000_question_accuracy": 0.971299946308136,
+      "recorded_10000_question_loss": 0.12231013923883438
+    },
+    {
+      "candidate": "learning_rate_3e-05_init_seed_6",
+      "learning_rate": 3e-05,
+      "init_seed": 6,
+      "run": "results\\base_task\\tuning\\learning_rate_3e-05_init_seed_6",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9810000658035278,
+      "fresh_1000_question_loss": 0.08152175694704056,
+      "recorded_10000_question_accuracy": 0.9817999601364136,
+      "recorded_10000_question_loss": 0.08407405018806458
+    },
+    {
+      "candidate": "learning_rate_3e-05_init_seed_7",
+      "learning_rate": 3e-05,
+      "init_seed": 7,
+      "run": "results\\base_task\\tuning\\learning_rate_3e-05_init_seed_7",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9820000529289246,
+      "fresh_1000_question_loss": 0.07005304843187332,
+      "recorded_10000_question_accuracy": 0.9765999913215637,
+      "recorded_10000_question_loss": 0.10459131747484207
+    },
+    {
+      "candidate": "learning_rate_0.0001_init_seed_5",
+      "learning_rate": 0.0001,
+      "init_seed": 5,
+      "run": "results\\base_task\\tuning\\learning_rate_0.0001_init_seed_5",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9920000433921814,
+      "fresh_1000_question_loss": 0.025781681761145592,
+      "recorded_10000_question_accuracy": 0.9888999462127686,
+      "recorded_10000_question_loss": 0.04189539700746536
+    },
+    {
+      "candidate": "learning_rate_0.0001_init_seed_6",
+      "learning_rate": 0.0001,
+      "init_seed": 6,
+      "run": "results\\base_task\\tuning\\learning_rate_0.0001_init_seed_6",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9920000433921814,
+      "fresh_1000_question_loss": 0.036508746445178986,
+      "recorded_10000_question_accuracy": 0.9917999505996704,
+      "recorded_10000_question_loss": 0.03410514071583748
+    },
+    {
+      "candidate": "learning_rate_0.0001_init_seed_7",
+      "learning_rate": 0.0001,
+      "init_seed": 7,
+      "run": "results\\base_task\\tuning\\learning_rate_0.0001_init_seed_7",
+      "checkpoint_sequences": 1000000,
+      "fresh_1000_question_accuracy": 0.9930000305175781,
+      "fresh_1000_question_loss": 0.02104196324944496,
+      "recorded_10000_question_accuracy": 0.9926999807357788,
+      "recorded_10000_question_loss": 0.02884836308658123
+    }
+  ],
+  "status": "HISTORICAL. The 10,000-question evaluator was retired after this comparison. Covers the original 15 candidates only (1e-6 to 1e-4); the later 1e-3 candidates were never scored on 10,000 questions.",
+  "figure": "results\\base_task\\tuning\\evaluator_size_comparison.png",
+  "rebuild_retired_evaluator": "temporary_checks/rebuild_large_dev_evaluator.py"
+}

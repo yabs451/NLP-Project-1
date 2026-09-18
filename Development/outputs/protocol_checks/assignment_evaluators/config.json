@@ -1,0 +1,141 @@
+{
+	"config_from_file": null,
+	"suppress_output": false,
+	"base_folder": "C:\\Users\\13327\\OneDrive\\Desktop\\NLP project\\NLP-Project-1\\results",
+	"use_wandb": false,
+	"raw_name": true,
+	"run": "protocol_check_assignment",
+	"disable_jit": false,
+	"depth": 2,
+	"not_causal": false,
+	"init_rescale": 1.0,
+	"pos_embedding_type": "rope",
+	"sin_time": 10000.0,
+	"d_model": 64,
+	"num_heads": 8,
+	"mlp_ratio": null,
+	"model_output_classes": 5,
+	"no_norm": false,
+	"init_seed": 5,
+	"train_seed": 0,
+	"train_iters": 3200,
+	"train_bs": 32,
+	"train_microbs": 32,
+	"lr": 1e-05,
+	"optimizer": "adam",
+	"weight_decay": 0.0,
+	"load_from_ckpt": null,
+	"load_from_ckpt_cfg": null,
+	"no_load_seeds": false,
+	"no_load_opt_state": false,
+	"ckpt_every": null,
+	"ckpt_sched": [
+		0
+	],
+	"ckpt_sched_file": null,
+	"train_context_len": 2,
+	"warmup_steps": 4000,
+	"decay_steps": 1000000,
+	"mixing_coeffs": [
+		1.0
+	],
+	"pt_burstiness": [
+		1
+	],
+	"pt_distract": null,
+	"pt_no_support": null,
+	"pt_unique_rest": null,
+	"eval_seed": 1,
+	"eval_iters": 1000,
+	"eval_bs": 1000,
+	"eval_every": null,
+	"eval_sched": [
+		0,
+		1600
+	],
+	"eval_sched_file": null,
+	"save_eval_data": "eval_data.h5",
+	"load_eval_data": [
+		"C:\\Users\\13327\\OneDrive\\Desktop\\NLP project\\NLP-Project-1\\results\\assignment\\eval_dev.h5"
+	],
+	"pe_names": [
+		"fsl_train",
+		"fsl_val_rl",
+		"fsl_train_valex"
+	],
+	"pe_classes": [
+		"train",
+		"train",
+		"train"
+	],
+	"pe_exemplars": [
+		"train",
+		"train",
+		"val"
+	],
+	"pe_burstiness": [
+		1,
+		1,
+		1
+	],
+	"pe_noise_scale": null,
+	"pe_distract": null,
+	"pe_no_support": null,
+	"pe_unique_rest": null,
+	"pe_fs_relabel_scheme": [
+		"train",
+		"val",
+		"train"
+	],
+	"pe_context_len": null,
+	"pe_assign_query_label_random": null,
+	"data_type": "file",
+	"data_file": "C:\\Users\\13327\\OneDrive\\Desktop\\NLP project\\NLP-Project-1\\upstream\\icl-dynamics\\omniglot_resnet18_randomized_order_s0.h5",
+	"data_path_in_file": "resnet18/224/feat",
+	"class_split": [
+		50,
+		1473,
+		100
+	],
+	"exemplar_split": [
+		1,
+		4,
+		0
+	],
+	"fs_relabel": 5,
+	"fs_relabel_split": [
+		8.0,
+		2.0,
+		0.0
+	],
+	"fs_relabel_split_seed": 20,
+	"noise_scale_train": 0.0,
+	"zipf_alpha": 0.0,
+	"match_query_and_distractors": false,
+	"assign_query_label_random": false,
+	"opto_specific_fn": null,
+	"opto_induction_heads": null,
+	"opto_induction_head_strength": 1.0,
+	"opto_match_heads": null,
+	"opto_match_head_temperature": 0.0,
+	"opto_prev_token_heads": null,
+	"opto_prev_token_head_strength": 1.0,
+	"opto_prev_token_only_label": false,
+	"opto_disallow_prev_token_heads": null,
+	"opto_disallow_prev_token_only_label": false,
+	"opto_ablate_heads": null,
+	"opto_ablate_embedding": false,
+	"opto_perfect_copy_from_head_pattern": null,
+	"opto_set_head_temperature": null,
+	"opto_final_layer_silence_non_label_attn": null,
+	"opto_preserve_patterns": false,
+	"opto_preserve_values": false,
+	"opto_preserve_queries": false,
+	"opto_preserve_keys": false,
+	"opto_graft_in_model_ckpt": null,
+	"opto_graft_in_model_cfg": null,
+	"opto_graft_in_model_till_layer": null,
+	"opto_graft_out_model_ckpt": null,
+	"opto_graft_out_model_cfg": null,
+	"opto_graft_out_model_from_layer": null
+}

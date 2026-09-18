@@ -1,0 +1,129 @@
+Defaulting model output classes to 5
+data shape 0: 1623 class split: [50, 1473, 100]
+Splitting fs relabelings with train: 8, val: 2, test: 0
+Writing eval data to file: C:\Users\13327\OneDrive\Desktop\NLP project\NLP-Project-1\results/protocol_check_reproduction/eval_data.h5
+Done writing
+----------0
+fsl_train acc 0.215
+fsl_train in_context_acc 0.512
+fsl_train in_context_prob 0.5015628
+fsl_train loss 1.9688559
+fsl_train out_context_acc 0.0
+fsl_train out_context_prob 0.0
+fsl_train prob 0.20634606
+fsl_train use_context_prob 0.40798455
+fsl_val_rl acc 0.22900002
+fsl_val_rl in_context_acc 0.49300003
+fsl_val_rl in_context_prob 0.49183613
+fsl_val_rl loss 2.0919018
+fsl_val_rl out_context_acc 0.0
+fsl_val_rl out_context_prob 0.0
+fsl_val_rl prob 0.19625561
+fsl_val_rl use_context_prob 0.39527047
+fsl_train_valex acc 0.21300001
+fsl_train_valex in_context_acc 0.53000003
+fsl_train_valex in_context_prob 0.51658875
+fsl_train_valex loss 1.9244976
+fsl_train_valex out_context_acc 0.0
+fsl_train_valex out_context_prob 0.0
+fsl_train_valex prob 0.21030171
+fsl_train_valex use_context_prob 0.4088874
+fsl_test_class acc 0.192
+fsl_test_class in_context_acc 0.505
+fsl_test_class in_context_prob 0.4935701
+fsl_test_class loss 2.0282574
+fsl_test_class out_context_acc 0.0
+fsl_test_class out_context_prob 0.0
+fsl_test_class prob 0.19621988
+fsl_test_class use_context_prob 0.3978376
+Checkpointing... 0
+C:\Users\13327\OneDrive\Desktop\NLP project\NLP-Project-1\upstream\icl-dynamics\main.py:81: DeprecationWarning: jax.tree_map is deprecated: use jax.tree.map (jax v0.4.25 or newer) or jax.tree_util.tree_map (any JAX version).
+  weight_norm = jnp.sum(jnp.stack(jax.tree_map(lambda x: jnp.linalg.norm(jnp.where(x != 0, x, 0)), jax.tree_leaves(eqx.filter(model, eqx.is_array)))))
+C:\Users\13327\OneDrive\Desktop\NLP project\NLP-Project-1\upstream\icl-dynamics\main.py:81: DeprecationWarning: jax.tree_leaves is deprecated: use jax.tree.leaves (jax v0.4.25 or newer) or jax.tree_util.tree_leaves (any JAX version).
+  weight_norm = jnp.sum(jnp.stack(jax.tree_map(lambda x: jnp.linalg.norm(jnp.where(x != 0, x, 0)), jax.tree_leaves(eqx.filter(model, eqx.is_array)))))
+C:\Users\13327\OneDrive\Desktop\NLP project\NLP-Project-1\upstream\icl-dynamics\main.py:118: DeprecationWarning: jax.tree_map is deprecated: use jax.tree.map (jax v0.4.25 or newer) or jax.tree_util.tree_map (any JAX version).
+  grad = jax.tree_map(avg_fn, *grads)
+C:\Users\13327\OneDrive\Desktop\NLP project\NLP-Project-1\upstream\icl-dynamics\main.py:119: DeprecationWarning: jax.tree_map is deprecated: use jax.tree.map (jax v0.4.25 or newer) or jax.tree_util.tree_map (any JAX version).
+  grad_norm = norm_fn(jax.tree_map(lambda x: x**2, grad))
+C:\Users\13327\OneDrive\Desktop\NLP project\NLP-Project-1\upstream\icl-dynamics\main.py:120: DeprecationWarning: jax.tree_map is deprecated: use jax.tree.map (jax v0.4.25 or newer) or jax.tree_util.tree_map (any JAX version).
+  grads_dev = [jax.tree_map(lambda x,y: (x-y)**2, g, grad) for g in grads]
+C:\Users\13327\OneDrive\Desktop\NLP project\NLP-Project-1\upstream\icl-dynamics\main.py:121: DeprecationWarning: jax.tree_map is deprecated: use jax.tree.map (jax v0.4.25 or newer) or jax.tree_util.tree_map (any JAX version).
+  grad_batch_var = jax.tree_map(avg_fn, *grads_dev)
+----------1600
+fsl_train acc 0.257
+fsl_train in_context_acc 0.51100004
+fsl_train in_context_prob 0.5008049
+fsl_train loss 1.7816561
+fsl_train out_context_acc 0.0
+fsl_train out_context_prob 0.0
+fsl_train prob 0.21878919
+fsl_train use_context_prob 0.4351592
+fsl_val_rl acc 0.16900001
+fsl_val_rl in_context_acc 0.485
+fsl_val_rl in_context_prob 0.49329454
+fsl_val_rl loss 2.029771
+fsl_val_rl out_context_acc 0.0
+fsl_val_rl out_context_prob 0.0
+fsl_val_rl prob 0.17624722
+fsl_val_rl use_context_prob 0.35438803
+fsl_train_valex acc 0.252
+fsl_train_valex in_context_acc 0.531
+fsl_train_valex in_context_prob 0.5150681
+fsl_train_valex loss 1.733931
+fsl_train_valex out_context_acc 0.0
+fsl_train_valex out_context_prob 0.0
+fsl_train_valex prob 0.22391576
+fsl_train_valex use_context_prob 0.43623042
+fsl_test_class acc 0.209
+fsl_test_class in_context_acc 0.48100004
+fsl_test_class in_context_prob 0.48924425
+fsl_test_class loss 1.8286213
+fsl_test_class out_context_acc 0.0
+fsl_test_class out_context_prob 0.0
+fsl_test_class prob 0.20754118
+fsl_test_class use_context_prob 0.42598298
+-
+loss 1.8077523
+grad_norm 6.552374
+grad_batch_stddev 0.0
+iter 1600
+End of training
+-
+loss 1.7950529
+grad_norm 9.292113
+grad_batch_stddev 0.0
+iter 3200
+fsl_train acc 0.28300002
+fsl_train in_context_acc 0.512
+fsl_train in_context_prob 0.5013403
+fsl_train loss 1.6464214
+fsl_train out_context_acc 0.0
+fsl_train out_context_prob 0.0
+fsl_train prob 0.22852077
+fsl_train use_context_prob 0.45470998
+fsl_val_rl acc 0.158
+fsl_val_rl in_context_acc 0.48900002
+fsl_val_rl in_context_prob 0.49442068
+fsl_val_rl loss 1.886352
+fsl_val_rl out_context_acc 0.0
+fsl_val_rl out_context_prob 0.0
+fsl_val_rl prob 0.17896223
+fsl_val_rl use_context_prob 0.35957378
+fsl_train_valex acc 0.275
+fsl_train_valex in_context_acc 0.527
+fsl_train_valex in_context_prob 0.5120739
+fsl_train_valex loss 1.6093568
+fsl_train_valex out_context_acc 0.0
+fsl_train_valex out_context_prob 0.0
+fsl_train_valex prob 0.23281266
+fsl_train_valex use_context_prob 0.45528287
+fsl_test_class acc 0.21700001
+fsl_test_class in_context_acc 0.47200003
+fsl_test_class in_context_prob 0.4889609
+fsl_test_class loss 1.6897334
+fsl_test_class out_context_acc 0.0
+fsl_test_class out_context_prob 0.0
+fsl_test_class prob 0.21747282
+fsl_test_class use_context_prob 0.44644538
+Checkpointing... 3200
+total training time (min):  0.19630677700042726
