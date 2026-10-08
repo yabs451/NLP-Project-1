@@ -149,6 +149,7 @@ def main():
             for field in ("examples", "labels"):
                 handle.create_dataset("/".join([FINAL_TEST_EVALUATOR_NAME, field]),
                                       data=np.asarray(final[field]))
+    final_test_built = final_test_path.exists()
 
     record = {
         "purpose": "Assignment validation/final-test class protocol, fixed before any model evaluation.",
@@ -188,8 +189,10 @@ def main():
         "final_test_evaluator": {
             "name": FINAL_TEST_EVALUATOR_NAME,
             "file": str(final_test_path.relative_to(ROOT)),
-            "built": bool(args.build_final_test),
-            "status": ("RESERVED - regenerate deterministically with --build-final-test when the "
+            "built": final_test_built,
+            "status": ("RESERVED - built deterministically; scoring status is recorded by the "
+                       "separate final-test results file" if final_test_built else
+                       "RESERVED - build deterministically with --build-final-test when the "
                        "project is ready; no model has been scored on it")},
     }
     (output / "class_splits.json").write_text(json.dumps(record, indent=2))
