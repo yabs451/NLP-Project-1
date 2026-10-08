@@ -41,8 +41,9 @@ ending where they end.
 
 Every model is scored on the same fixed 1,000-question development evaluator
 drawn from the **original** task distribution, deliberately not adjusted to match
-a condition's training distribution. Attention measures and ablations use 12 of
-the 55 checkpoints; accuracy and loss are logged 201 times per run.
+a condition's training distribution. Attention measures use 12 of the 55
+checkpoints; accuracy and loss are logged 201 times per run, and single-head
+ablations are performed only at each model's final checkpoint.
 
 ### The context-feedback rule, and its four distinct stages
 
@@ -139,17 +140,20 @@ than read as a preference.
 
 ### Context feedback: query-label accuracy held, then fell — later than four generations would suggest
 
-| condition | gen | query acc / loss | following acc | induction | prev-token |
+| condition | gen | query acc / loss | following acc | induction | canonical prev-token (1,3) |
 | --- | --- | ---: | ---: | ---: | ---: |
-| reference | 4 | 0.993 / 0.046 | 0.997 | 0.979 | 0.996 |
-| T = 1 | 4 | 0.992 / 0.030 | 0.995 | 0.981 | 0.997 |
+| reference | 4 | 0.993 / 0.046 | 0.997 | 0.979 | 1.000 |
+| T = 1 | 4 | 0.992 / 0.030 | 0.995 | 0.981 | — |
 | T = 1/3 | 4 | 0.997 / 0.007 | 0.995 | 0.970 | 1.000 |
 | T = 1/3 | 5 | 0.974 / 0.112 | 0.973 | 0.929 | 1.000 |
 | T = 1/3 | 6 | **0.410 / 2.474** | **0.399** | **0.129** | 1.000 |
-| T = 0.2 | 3 | 0.994 / 0.018 | 0.996 | 0.979 | 1.000 |
-| T = 0.2 | 4 | **0.535 / 5.551** | **0.497** | **0.161** | 0.904 |
-| T = 0.2 | 5 | 0.615 / 4.676 | 0.592 | 0.253 | 0.996 |
-| T = 0.2 | 6 | 0.526 / 5.630 | 0.544 | 0.159 | 1.000 |
+| T = 0.2 | 3 | 0.994 / 0.018 | 0.996 | 0.979 | — |
+| T = 0.2 | 4 | **0.535 / 5.551** | **0.497** | **0.161** | — |
+| T = 0.2 | 5 | 0.615 / 4.676 | 0.592 | 0.253 | — |
+| T = 0.2 | 6 | 0.526 / 5.630 | 0.544 | 0.159 | — |
+
+The dashes mark conditions outside the targeted Phase 3 metric validation; their
+older 1/3/5 diagnostic values are not presented as canonical 1/3 results.
 
 **Extending the chains changed the conclusion.** At four generations,
 temperature 1/3 looked stable — 0.997 query accuracy at generation 4, better than
@@ -219,16 +223,19 @@ concentration clearly; they are not a demonstration that nothing changed. These 
 identity concentration cleanly: this one produces the first and none of the
 second.
 
-| condition | gen | query acc | following acc | symbol loss | induction | prev-token |
+| condition | gen | query acc | following acc | symbol loss | induction | canonical prev-token (1,3) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| reference | 4 | 0.993 | 0.997 | 0.6930 | 0.979 | 0.996 |
-| T = 1/3 | 4 | 0.995 | 0.991 | 1.9546 | 0.957 | 1.000 |
-| T = 1/3 | 5 | 0.992 | 0.987 | 3.1542 | 0.907 | 0.957 |
-| T = 1/3 | 6 | 0.993 | 0.961 | 4.1266 | 0.910 | 0.998 |
-| T = 0.2 | 3 | 0.991 | 0.971 | 2.8528 | 0.936 | 0.995 |
-| T = 0.2 | 4 | 0.991 | **0.898** | 4.3825 | 0.823 | 0.898 |
-| T = 0.2 | 5 | 0.989 | 0.935 | 5.4698 | 0.792 | 0.702 |
-| T = 0.2 | 6 | 0.997 | 0.940 | 5.7462 | **0.646** | 0.685 |
+| reference | 4 | 0.993 | 0.997 | 0.6930 | 0.979 | 1.000 |
+| T = 1/3 | 4 | 0.995 | 0.991 | 1.9546 | 0.957 | — |
+| T = 1/3 | 5 | 0.992 | 0.987 | 3.1542 | 0.907 | — |
+| T = 1/3 | 6 | 0.993 | 0.961 | 4.1266 | 0.910 | — |
+| T = 0.2 | 3 | 0.991 | 0.971 | 2.8528 | 0.936 | 1.000 |
+| T = 0.2 | 4 | 0.991 | **0.898** | 4.3825 | 0.823 | 0.940 |
+| T = 0.2 | 5 | 0.989 | 0.935 | 5.4698 | 0.792 | 0.673 |
+| T = 0.2 | 6 | 0.997 | 0.940 | 5.7462 | **0.646** | 0.692 |
+
+As above, dashes mark the next-symbol-temperature condition outside this targeted
+validation rather than relabelling its historical 1/3/5 diagnostic values.
 
 **The two label outputs behaved differently, and it is wrong to describe them
 together as intact.** Query-label accuracy did stay high throughout both chains
@@ -248,21 +255,28 @@ one.
 
 **Attention scores and predictive performance came apart here.** Along the
 temperature-0.2 chain the strongest induction score fell 0.977 → 0.823 → 0.792 →
-0.646 and the previous-token score fell to 0.685, while query-label accuracy went
+0.646 and the canonical previous-token score fell to 0.692, while query-label accuracy went
 *up*, ending at 0.997 — its highest value in the chain. Whatever the induction
 score is tracking, it is not query-label performance in this condition. These are
 attention-pattern measurements — where heads attend — and this dissociation is a
 concrete reason not to read them as measurements of circuit function.
+
+The canonical previous-token metric uses positions **1 and 3**; positions 1, 3
+and 5 remain only as the named historical extended diagnostic. In the selected
+context-temperature-1/3 chain, canonical head selection and ablation effects are
+unchanged. In the selected symbol-temperature-0.2 chain, generation 2 changes
+from H4 to H2 (ablation +8.9 to +1.0 points) and generation 3 from H5 to H7
+(+0.6 to +1.5 points). Generation 6 remains H3 with a +12.7-point effect.
 
 ### Head ablations
 
 Effects are intact minus ablated query accuracy in percentage points; positive
 means silencing the head reduced accuracy. Silencing each model's strongest
 induction head changed query accuracy by between −0.2 and +3.5 points anywhere in
-these five conditions, including in the runs whose accuracy had fallen. Silencing
-the strongest previous-token head ranged much wider and erratically, from under 1
-point to +41.3 at context temperature 0.2 generation 1. We have not investigated
-what drives that range.
+these five conditions, including in the runs whose accuracy had fallen. In the
+two Phase 3-selected chains, canonical previous-token-head effects still range
+erratically, from +0.2 to +12.7 points. We have not investigated what drives that
+range.
 
 Selected head identities move between generations in most of these chains, so
 consecutive rows in an ablation series often describe different heads and are not
@@ -324,7 +338,8 @@ one seed, one budget, and the fall appears at a single generation in each chain.
   models' predicted probability vectors; recovering those would need fresh
   inference over the saved checkpoints.
 - **Attention coverage is sparse** — 12 of 55 checkpoints — against 201 logged
-  points for accuracy and loss, and head identities move between generations.
+  points for accuracy and loss. Ablations were run only at final checkpoints,
+  and head identities move between generations.
 - **Unexplained and recorded, not interpreted**: why the previous-token ablation
   effect ranges from under 1 to 41 percentage points; why the temperature-0.2
   context chain partially recovers at generation 5; why the symbol-temperature

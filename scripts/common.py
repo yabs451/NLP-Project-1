@@ -86,8 +86,26 @@ def baseline_options():
 
 
 def load_run_options(run_folder):
-    """Load the options a finished run actually used, from its own config.json."""
-    return argparse.Namespace(**json.loads((Path(run_folder) / "config.json").read_text()))
+    """Load a run's saved options, repairing stale machine-specific input paths.
+
+    Historical configs are provenance records and are never rewritten.  Older
+    base runs may contain absolute paths from the machine that trained them, so
+    missing feature and evaluator paths are resolved to the corresponding files
+    in this checkout.
+    """
+    config = json.loads((Path(run_folder) / "config.json").read_text())
+    if config.get("data_file") and not Path(config["data_file"]).exists():
+        config["data_file"] = str(FEATURE_FILE)
+    resolved_evaluators = []
+    for saved in config.get("load_eval_data") or []:
+        saved_path = Path(saved)
+        if saved_path.exists():
+            resolved_evaluators.append(str(saved_path))
+            continue
+        local = EVALUATION_DATA / saved_path.name
+        resolved_evaluators.append(str(local if local.exists() else saved_path))
+    config["load_eval_data"] = resolved_evaluators
+    return argparse.Namespace(**config)
 
 
 def checkpoint_path(run_folder, iteration):

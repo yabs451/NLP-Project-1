@@ -1,4 +1,7 @@
 {
+  "analysis_version": 2,
+  "previous_token_metric_definition": "layer-0 chance-corrected predecessor attention averaged over token positions 1 and 3",
+  "historical_previous_token_diagnostic_definition": "layer-0 chance-corrected predecessor attention averaged over token positions 1, 3 and 5",
   "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_5",
   "generation": 5,
   "checkpoints_saved": 55,
@@ -36,7 +39,8 @@
       "query_label_accuracy": 0.20900000631809235,
       "symbol_loss": 0.7572287321090698,
       "next_label_accuracy": 0.1940000057220459,
-      "max_previous_token_score": 0.16852751507394836,
+      "max_previous_token_score": 0.21977430128430317,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.16852751507394836,
       "max_induction_score": 0.005140309687703848
     },
     {
@@ -44,7 +48,8 @@
       "query_label_accuracy": 0.5139999985694885,
       "symbol_loss": 1.1850988864898682,
       "next_label_accuracy": 0.5060000419616699,
-      "max_previous_token_score": 0.08728380492790067,
+      "max_previous_token_score": 0.123364197048281,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.08728380492790067,
       "max_induction_score": 0.017313877120614052
     },
     {
@@ -52,7 +57,8 @@
       "query_label_accuracy": 0.5270000100135803,
       "symbol_loss": 1.5288817882537842,
       "next_label_accuracy": 0.4970000088214874,
-      "max_previous_token_score": 0.05151925133582613,
+      "max_previous_token_score": 0.05860538778120342,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.05151925133582613,
       "max_induction_score": 0.015094717033207417
     },
     {
@@ -60,7 +66,8 @@
       "query_label_accuracy": 0.503000020980835,
       "symbol_loss": 1.8574727773666382,
       "next_label_accuracy": 0.503000020980835,
-      "max_previous_token_score": 0.042452596939313726,
+      "max_previous_token_score": 0.04471936391651008,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.042452596939313726,
       "max_induction_score": 0.01624600775539875
     },
     {
@@ -68,7 +75,8 @@
       "query_label_accuracy": 0.5260000228881836,
       "symbol_loss": 2.152804136276245,
       "next_label_accuracy": 0.5,
-      "max_previous_token_score": 0.10197032048315745,
+      "max_previous_token_score": 0.11445163742318974,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.10197032048315745,
       "max_induction_score": 0.02303103730082512
     },
     {
@@ -76,7 +84,8 @@
       "query_label_accuracy": 0.8260000348091125,
       "symbol_loss": 2.785230875015259,
       "next_label_accuracy": 0.5830000042915344,
-      "max_previous_token_score": 0.2865050681280388,
+      "max_previous_token_score": 0.30796352632359286,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.2865050681280388,
       "max_induction_score": 0.25350669026374817
     },
     {
@@ -84,7 +93,8 @@
       "query_label_accuracy": 0.971000075340271,
       "symbol_loss": 3.739396095275879,
       "next_label_accuracy": 0.675000011920929,
-      "max_previous_token_score": 0.33305727735554974,
+      "max_previous_token_score": 0.3224982964973841,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.33305727735554974,
       "max_induction_score": 0.3059835731983185
     },
     {
@@ -92,7 +102,8 @@
       "query_label_accuracy": 0.9810000658035278,
       "symbol_loss": 4.206080436706543,
       "next_label_accuracy": 0.7460000514984131,
-      "max_previous_token_score": 0.5078684454091474,
+      "max_previous_token_score": 0.5213316017922871,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.5078684454091474,
       "max_induction_score": 0.2961094081401825
     },
     {
@@ -100,7 +111,8 @@
       "query_label_accuracy": 0.9910000562667847,
       "symbol_loss": 4.3210129737854,
       "next_label_accuracy": 0.8410000205039978,
-      "max_previous_token_score": 0.5779721341853498,
+      "max_previous_token_score": 0.6018475923864168,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.5779721341853498,
       "max_induction_score": 0.4791075885295868
     },
     {
@@ -108,7 +120,8 @@
       "query_label_accuracy": 0.9900000691413879,
       "symbol_loss": 4.677975654602051,
       "next_label_accuracy": 0.9150000214576721,
-      "max_previous_token_score": 0.6482142872564721,
+      "max_previous_token_score": 0.6677807191898648,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.6482142872564721,
       "max_induction_score": 0.6694226861000061
     },
     {
@@ -116,7 +129,8 @@
       "query_label_accuracy": 0.987000048160553,
       "symbol_loss": 5.115847110748291,
       "next_label_accuracy": 0.906000018119812,
-      "max_previous_token_score": 0.6921406086065653,
+      "max_previous_token_score": 0.6706882006412732,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.6921406086065653,
       "max_induction_score": 0.7997885942459106
     },
     {
@@ -124,11 +138,22 @@
       "query_label_accuracy": 0.9890000224113464,
       "symbol_loss": 5.469804286956787,
       "next_label_accuracy": 0.9350000619888306,
-      "max_previous_token_score": 0.7024686243202176,
+      "max_previous_token_score": 0.6734666736967921,
+      "max_previous_token_score_positions_1_3_5_diagnostic": 0.7024686243202176,
       "max_induction_score": 0.792258083820343
     }
   ],
   "previous_token_scores_layer0": [
+    0.5301200043879131,
+    0.6734666736967921,
+    0.2684267347588193,
+    0.6158937839594488,
+    -0.3775533016778365,
+    0.000858114305116417,
+    -0.6664542601024547,
+    0.6210030394991652
+  ],
+  "previous_token_scores_positions_1_3_5_diagnostic_layer0": [
     0.5083714340163163,
     0.7024686243202176,
     0.33983802919394807,

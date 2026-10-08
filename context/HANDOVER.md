@@ -128,7 +128,7 @@ training.
 | Checkpoints, tuning candidates | **2 per run** — initialisation and final only, because only final models are compared. A tuning candidate therefore cannot support mechanistic analysis, which is why generation 0 is trained separately |
 | Development evaluator | a fixed **1,000-question** set from 100 held-out classes, never changed between conditions |
 | Accuracy/loss logging | every 5,000 sequences → **201 points** per run, in `log.h5` |
-| Attention + ablation analysis | **12 of the 55 checkpoints** in the extended-task analyses, the same 12 in every extended run. The base-task analysis uses its own rule and reports **13** analysed checkpoints, so the two tasks are not directly comparable on this axis |
+| Attention and ablation analysis | Attention and performance are measured at **12 of the 55 checkpoints** in each extended run; the base task reports **13**. Single-head ablations are performed only at the final checkpoint of each model, not across the analysed checkpoints |
 | Final test | **100 reserved classes, never generated and never scored.** Outstanding by design: it should be run once the experimental choices are settled, so the held-out number is reported against a final configuration rather than a moving one |
 
 ### The two learning-rate searches
@@ -159,6 +159,14 @@ is not the best-scoring seed — seeds 6 and 7 both scored slightly higher.
 Seeds used, recorded in every run's `config.json`: symbol-head initialisation 11,
 generation-0 coin flips 12, development coin flips 13, next-symbol sampling 14,
 label sampling 15, context-feedback frequency pass 16.
+
+**Analysis-definition history.** Extended-task analysis produced before the Phase
+1 cleanup averaged the previous-token score over positions 1, 3 and 5. The
+canonical metric now uses only the two context-label positions 1 and 3, matching
+the quantity used to select the previous-token head for the main ablation. Old
+1/3/5 values and previous-token-head ablations selected from them remain
+historical; they must not be relabelled as 1/3 results. New outputs carry an
+analysis version and metric definition and keep 1/3/5 only as a named diagnostic.
 
 ### Two pieces of history
 
@@ -466,7 +474,8 @@ adding conditions.
 
 **Standing limitations.** One chain per condition, one initialisation seed, one
 budget — these are not replications. Attention measures come from 12 of 55
-checkpoints. Development numbers are a 1,000-question sample, not the whole
+checkpoints, while ablations were run only on final checkpoints. Development
+numbers are a 1,000-question sample, not the whole
 question distribution. Both tuning winners sit at the edge of their grids. For
 context feedback, training and evaluation distributions diverge by design: those
 scores describe the *original* question distribution, and we never scored those

@@ -1,4 +1,6 @@
 {
+  "analysis_version": 2,
+  "previous_token_metric_definition": "layer-0 chance-corrected predecessor attention averaged over token positions 1 and 3",
   "condition": "context_feedback_temperature_1",
   "label_generation": "argmax over the five labels",
   "question": "Does query-label performance, generated-symbol behaviour or the attention measures change across extended-task generations?",
@@ -35,7 +37,7 @@
         "generated_chose_context_position_0": 0.5110000371932983
       },
       "strongest_induction_score": 0.9773387908935547,
-      "strongest_previous_token_score": 0.9999961848629795,
+      "strongest_previous_token_score": 0.9999973061879457,
       "ablations": {
         "intact_query_label_accuracy": 0.9970000386238098,
         "induction_head": 2,
@@ -78,7 +80,7 @@
         "generated_chose_context_position_0": 0.5139999985694885
       },
       "strongest_induction_score": 0.9855867624282837,
-      "strongest_previous_token_score": 0.9999570131248884,
+      "strongest_previous_token_score": 0.9999999627272278,
       "ablations": {
         "intact_query_label_accuracy": 1.0,
         "induction_head": 2,
@@ -121,7 +123,7 @@
         "generated_chose_context_position_0": 0.5110000371932983
       },
       "strongest_induction_score": 0.9798436760902405,
-      "strongest_previous_token_score": 0.999839861626093,
+      "strongest_previous_token_score": 0.9998408914605772,
       "ablations": {
         "intact_query_label_accuracy": 0.9930000305175781,
         "induction_head": 2,
@@ -164,7 +166,7 @@
         "generated_chose_context_position_0": 0.5060000419616699
       },
       "strongest_induction_score": 0.9918121099472046,
-      "strongest_previous_token_score": 0.9999481421947438,
+      "strongest_previous_token_score": 0.9999969018697722,
       "ablations": {
         "intact_query_label_accuracy": 0.999000072479248,
         "induction_head": 2,
@@ -207,7 +209,7 @@
         "generated_chose_context_position_0": 0.5060000419616699
       },
       "strongest_induction_score": 0.9814276695251465,
-      "strongest_previous_token_score": 0.9968510811752714,
+      "strongest_previous_token_score": 0.9996097440520919,
       "ablations": {
         "intact_query_label_accuracy": 0.9920000433921814,
         "induction_head": 2,

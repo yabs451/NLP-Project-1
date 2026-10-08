@@ -73,9 +73,11 @@ the same procedure. Two different sampling densities matter throughout:
 
 - **query accuracy and loss** are logged every 5,000 sequences, giving **201
   points** per run;
-- **attention measures and ablations** are computed at **12 of the 55 saved
-  checkpoints**, the same 12 in every model (0; 1,024; 2,016; 5,024; 10,016;
+- **attention measures** are computed at **12 of the 55 saved checkpoints**, the
+  same 12 in every model (0; 1,024; 2,016; 5,024; 10,016;
   20,000; 40,000; 80,000; 160,000; 280,000; 540,000; 1,000,000).
+
+Single-head ablations were performed only on each model's final checkpoint.
 
 Statements about attention are therefore limited to those 12 points; we never
 observed the 43 checkpoints in between. The reserved final-test classes were not
@@ -289,16 +291,22 @@ Strongest score over the eight heads, each model measured on its own final
 checkpoint. These are **attention-pattern measurements**: they describe where
 heads attend, not what a head contributes to the output.
 
-| gen | argmax induction / prev-token | T=1 | T=3 | T=5 |
-| --- | ---: | ---: | ---: | ---: |
-| 0 | 0.977 / 1.000 | 0.977 / 1.000 | 0.977 / 1.000 | 0.977 / 1.000 |
-| 1 | 0.986 / 1.000 | 0.977 / 1.000 | 0.946 / 1.000 | 0.929 / 0.999 |
-| 2 | 0.977 / 1.000 | 0.983 / 0.943 | **0.562 / 0.636** | **0.019 / 0.300** |
-| 3 | 0.991 / 1.000 | 0.960 / 1.000 | **0.002 / 0.352** | **0.038 / 0.453** |
-| 4 | 0.979 / 0.996 | 0.990 / 1.000 | **0.021 / 0.721** | **0.000 / 0.546** |
+The canonical previous-token metric averages positions **1 and 3**. Positions
+1, 3 and 5 are retained in the analysis files only as the explicitly named
+historical extended diagnostic. The Phase 3 validation covered the report-worthy
+argmax, temperature-3 and temperature-5 chains:
 
-The previous-token score is non-monotone in the collapsed chains — 0.636 → 0.352
-→ 0.721 at temperature 3 — so it does not simply follow the induction score down.
+| gen | argmax induction / prev-token (1,3) | T=3 | T=5 |
+| --- | ---: | ---: | ---: |
+| 0 | 0.977 / 1.000 | 0.977 / 1.000 | 0.977 / 1.000 |
+| 1 | 0.986 / 1.000 | 0.946 / 1.000 | 0.929 / 1.000 |
+| 2 | 0.977 / 1.000 | **0.562 / 0.672** | **0.019 / 0.468** |
+| 3 | 0.991 / 1.000 | **0.002 / 0.503** | **0.038 / 0.564** |
+| 4 | 0.979 / 1.000 | **0.021 / 0.694** | **0.000 / 0.731** |
+
+The canonical previous-token score is still non-monotone in the collapsed
+chains — 0.672 → 0.503 → 0.694 at temperature 3 — so it does not simply follow
+the induction score down.
 
 ### Head ablations
 
@@ -325,6 +333,13 @@ chance is a reference level, not a floor a model cannot fall below, and these
 models could in principle have scored lower when perturbed. We record the numbers
 and draw no conclusion from them.
 
+Under the canonical metric, the selected previous-token head changed only for
+temperature 3 generation 2 among the three Phase 3 chains: L0H4 became L0H0, and
+the measured final-checkpoint ablation effect changed from +5.4 to +0.4 percentage
+points. The other selected heads and their ablation effects were unchanged. This
+removes that one moderate effect but does not change the conclusion above about
+the already-collapsed models.
+
 Single-head ablation is therefore **not** uniformly uninformative here — it is
 small for the selected induction head and sometimes large for the selected
 previous-token head. What it does not establish is redundancy. A small effect
@@ -339,10 +354,11 @@ that the behaviour is distributed across them.
 Head identities are recorded in every `analysis.json` and are selected from each
 model's own final scores. They stayed at L1H2 throughout the argmax chain but
 moved in the sampling chains — induction L1H2 → L1H4 → L1H7 at temperature 1, and
-L1H2 → L1H0 → L1H6 → L1H7 at temperature 3. The previous-token head moved from
-L0H1 to L0H7 after generation 0 in three of the four chains. **Where the identity
-changes, consecutive rows describe different heads and are not a like-for-like
-series.**
+L1H2 → L1H0 → L1H6 → L1H7 at temperature 3. For the canonical previous-token
+metric, the selected Phase 3 chains use H1→H7→H7→H7→H7 (argmax),
+H1→H4→H0→H1→H1 (temperature 3), and H1→H4→H0→H6→H6 (temperature 5).
+**Where the identity changes, consecutive rows describe different heads and are
+not a like-for-like series.**
 
 ### What the within-training curves show
 
@@ -478,8 +494,9 @@ moved only in the fifth decimal place.
   updates at these settings. Whether longer training would change any collapsed
   run is untested, and these data do not indicate either way.
 - **Attention coverage is sparse.** 12 of 55 checkpoints for the attention
-  measures and ablations, against 201 logged points for accuracy and loss. No
-  claim is made about what happened between the analysed checkpoints.
+  measures, against 201 logged points for accuracy and loss. Ablations were run
+  only at final checkpoints. No claim is made about attention between the
+  analysed checkpoints.
 - **Head identity changed within the sampling chains**, so those ablation series
   are not like-for-like.
 - **Ablation is single-head, zero-ablation, on one evaluator.** It establishes

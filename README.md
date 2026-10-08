@@ -148,11 +148,11 @@ NLP-Project-1/
 | `train_original.py` | Trains one model on the real task by running the authors' `main.py`, with our evaluator set and checkpoint schedule. |
 | `tune_learning_rate.py` | Trains the learning-rate grid, applies the selection rule, writes the results table, selection record and figure. |
 | `run_recursive.py` | For each successor: generates a million training examples from the parent's own answers, then trains a freshly initialised student on them. |
-| `analyse_runs.py` | Per run: learning curves, per-head attention measures across checkpoints, an attention map, head ablations. With `--compare`: the across-generation table and figure. |
+| `analyse_runs.py` | Per run: learning curves, per-head attention measures across checkpoints, an attention map, and final-checkpoint head ablations. With `--compare`: the across-generation table and figure. |
 | `extended_model.py` | The extended task's model and losses: the authors' backbone unchanged, plus a two-way head that picks the next symbol. Also generates a continuation autoregressively. |
 | `tune_extended.py` | Trains the extended task's learning-rate grid on correct continuations, applies the selection rule, writes the results table, selection record and figure. The recursive chains read the selected rate from that record. |
 | `run_extended.py` | Trains one extended chain: generation 0 on correct continuations, then each successor on continuations its parent generated. `--label-strategy` and `--label-temperature` select the condition; generation 0 is trained once and shared by all of them. |
-| `analyse_extended.py` | Per generation: development scores at all three output positions teacher-forced and self-generated, attention measures, single-head ablations. `--condition` writes one chain's table, figure and generated-data distributions; `--compare-family` puts the shared reference beside one family — label generation, context feedback or next-symbol temperature. |
+| `analyse_extended.py` | Per generation: development scores and attention measures across selected checkpoints, plus single-head ablations at the final checkpoint only. `--condition` writes one chain's table, figure and generated-data distributions; `--compare-family` puts the shared reference beside one family — label generation, context feedback or next-symbol temperature. |
 
 ## Setup
 
@@ -326,14 +326,16 @@ Both flags accept `1/3` so a third stays exact rather than rounded.
 
 Finished generations are skipped, each condition writes to its own folder, and a
 run trained at a different learning rate is refused rather than silently reused —
-so the commands are safe to restart and the conditions cannot be mixed up.
+so the commands are safe to restart. A command that changes more than one family
+at once is rejected rather than assigned an ambiguous condition name.
 
 **How a parent generates its successor's training data.** One token at a time,
 each step conditioned on the tokens the parent itself produced:
 
 1. the query label,
 2. the next symbol, always **sampled** from its two-way distribution at
-   temperature 1, in every condition,
+   the condition's next-symbol temperature (temperature 1 in the reference,
+   label-generation and context-feedback families),
 3. the following label.
 
 The two **labels** are where the conditions differ:
@@ -346,7 +348,8 @@ The two **labels** are where the conditions differ:
   every temperature.
 
 Mistakes are kept, and correct answers are never mixed back in. Opening contexts
-and queries always come from the original task generator, in every condition.
+and queries always use the original task generator's construction rules; the
+context-feedback family changes only its class-sampling weights.
 Because generation is autoregressive, a sampled query label is fed back in before
 the symbol is chosen, so the symbol probabilities differ between conditions even
 though the symbol rule is identical.
@@ -386,6 +389,13 @@ command also counts the distributions inside that condition's saved training
 datasets — which symbols the parent chose, and where its labels went. The final
 command reads the four tables and writes the comparison and the distribution
 figure.
+
+The canonical extended previous-token score averages chance-corrected predecessor
+attention at token positions **1 and 3**. Analysis files produced before Phase 1
+used positions **1, 3 and 5**; those values and any previous-token head selected
+from them are historical, not equivalent results under the new definition. New
+analysis records include a version and metric definition, retain 1/3/5 only as an
+explicitly named diagnostic, and will not reuse an unversioned old cache.
 
 ## What gets generated
 
@@ -446,7 +456,8 @@ Analysis does not read all 55. The extended-task analysis measures a fixed,
 roughly log-spaced subset of **12** of them, by the same rule in every generation
 and every condition, so the analysed points line up. The base-task analysis uses
 its own rule and reports **13**. Each `analysis.json` lists exactly which
-checkpoints it used.
+checkpoints it used. Attention and performance are measured across that subset;
+single-head ablations are run only on each model's final checkpoint.
 
 Reducing snapshots never reduces the learning curves: those come from `log.h5`,
 which is written at every evaluation point regardless.
@@ -461,10 +472,10 @@ which is written at every evaluation point regardless.
   zero-ablation measures the effect of that one intervention on one evaluator; a
   small effect does not establish redundancy, and no combination of heads was
   silenced.
-- **Attention is sampled sparsely.** The attention measures and ablations are
-  computed at 12 of the 55 checkpoints in the extended task (13 in the base task),
-  while accuracy and loss are logged 201 times per run. Nothing is claimed about
-  what happened in between.
+- **Attention is sampled sparsely.** Attention measures are computed at 12 of the
+  55 checkpoints in the extended task (13 in the base task), while accuracy and
+  loss are logged 201 times per run. Single-head ablations are performed only at
+  the final checkpoint. Nothing is claimed about attention between sampled points.
 - **Degradation across generations and development within training are separate
   questions.** Where two measures move within the same observed interval, nothing
   here establishes which moved first.

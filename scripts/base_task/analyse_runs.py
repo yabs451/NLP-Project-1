@@ -222,13 +222,15 @@ def read_generation_summaries(recursive_folder):
     checkpoint-selection rules.
     """
     summaries = []
-    for folder in sorted(Path(recursive_folder).glob("generation_*"),
-                         key=lambda f: int(f.name.split("_")[1])):
+    folders = [folder for folder in Path(recursive_folder).glob("generation_*")
+               if folder.is_dir() and folder.name.removeprefix("generation_").isdigit()]
+    for folder in sorted(folders,
+                         key=lambda f: int(f.name.removeprefix("generation_"))):
         analysis = folder / "analysis" / "analysis.json"
         if not analysis.exists():
             raise SystemExit("{} has not been analysed yet".format(folder))
         summary = json.loads(analysis.read_text(encoding="utf-8"))
-        summary["generation"] = int(folder.name.split("_")[1])
+        summary["generation"] = int(folder.name.removeprefix("generation_"))
         # Successors record how good the parent's generated answers were; that
         # is the quantity most likely to explain any drift down the chain.
         metadata = folder / "generation_metadata.json"

@@ -37,6 +37,11 @@ import numpy as np
 # the query symbol, which is token 4 of the seven-token extended sequence.
 QUERY_TOKEN = extended.QUERY_LABEL_POSITION
 CHECKPOINTS_TO_ANALYSE = 13
+ANALYSIS_VERSION = 2
+PREVIOUS_TOKEN_METRIC_DEFINITION = (
+    "layer-0 chance-corrected predecessor attention averaged over token positions 1 and 3")
+HISTORICAL_PREVIOUS_TOKEN_DIAGNOSTIC = (
+    "layer-0 chance-corrected predecessor attention averaged over token positions 1, 3 and 5")
 
 
 def choose_checkpoints(folder):
@@ -80,7 +85,11 @@ def attention_measures(model, dev, key):
     raw = attention[:, 0, :, rows, rows - 1]            # [pair, batch, head]
     corrected = raw.transpose(0, 2, 1) - (1 - raw.transpose(0, 2, 1)) / (
         1 + np.arange(sequence - 1))[:, None, None]
-    previous_token = corrected[0::2].mean(axis=(0, 2))   # label tokens only
+    # Canonical circuit metric: only the two context-label tokens. Position 5
+    # is the generated query label in the extended sequence, so including it
+    # changes the definition relative to the base-task 1-and-3 measure.
+    previous_token = corrected[[0, 2]].mean(axis=(0, 2))
+    historical_previous_token = corrected[[0, 2, 4]].mean(axis=(0, 2))
 
     # Which context position holds the symbol matching the query.
     examples = np.asarray(dev["symbols"])
@@ -89,7 +98,15 @@ def attention_measures(model, dev, key):
     batch = np.arange(query_row.shape[0])
     induction = (query_row[batch, :, 2 * correct + 1]
                  - query_row[batch, :, 2 * (1 - correct) + 1]).mean(axis=0)
-    return previous_token, induction
+    return previous_token, induction, historical_previous_token
+
+
+def analysis_is_current(record):
+    """Whether a cached analysis uses this code's canonical metric definition."""
+    return (record.get("analysis_version") == ANALYSIS_VERSION
+            and record.get("previous_token_metric_definition")
+            == PREVIOUS_TOKEN_METRIC_DEFINITION
+            and "final_generated_scores" in record)
 
 
 def generated_continuation_scores(model, dev, key):
@@ -143,7 +160,8 @@ def analyse_generation(folder, opts, dev):
     trajectory = []
     for iteration in chosen:
         model = pipeline.load_model(folder, iteration, opts)
-        previous_token, induction = attention_measures(model, dev, key)
+        previous_token, induction, historical_previous_token = attention_measures(
+            model, dev, key)
         scores = pipeline.score_dev(model, dev, key)
         trajectory.append({
             "iter": int(iteration),
@@ -151,11 +169,13 @@ def analyse_generation(folder, opts, dev):
             "symbol_loss": scores["symbol_loss"],
             "next_label_accuracy": scores["next_label_accuracy"],
             "max_previous_token_score": float(previous_token.max()),
+            "max_previous_token_score_positions_1_3_5_diagnostic":
+                float(historical_previous_token.max()),
             "max_induction_score": float(induction.max()),
         })
 
     final = pipeline.load_model(folder, available[-1], opts)
-    previous_token, induction = attention_measures(final, dev, key)
+    previous_token, induction, historical_previous_token = attention_measures(final, dev, key)
     scores = pipeline.score_dev(final, dev, key)
     generated = generated_continuation_scores(final, dev, key)
 
@@ -179,6 +199,10 @@ def analyse_generation(folder, opts, dev):
 
     quality = json.loads((folder / "dataset_quality.json").read_text(encoding="utf-8"))
     summary = {
+        "analysis_version": ANALYSIS_VERSION,
+        "previous_token_metric_definition": PREVIOUS_TOKEN_METRIC_DEFINITION,
+        "historical_previous_token_diagnostic_definition":
+            HISTORICAL_PREVIOUS_TOKEN_DIAGNOSTIC,
         "run": str(folder.relative_to(common.ROOT)),
         "generation": int(json.loads((folder / "config.json").read_text())["generation"]),
         "checkpoints_saved": len(available),
@@ -187,6 +211,8 @@ def analyse_generation(folder, opts, dev):
         "final_generated_scores": generated,
         "trajectory": trajectory,
         "previous_token_scores_layer0": previous_token.tolist(),
+        "previous_token_scores_positions_1_3_5_diagnostic_layer0":
+            historical_previous_token.tolist(),
         "induction_scores_layer1": induction.tolist(),
         "ablations": ablations,
         "training_data_quality": quality,
@@ -385,9 +411,10 @@ def summarise_condition(condition, opts, dev):
     summaries, label_rule, distributions = [], None, []
     for folder in chain_folders(condition):
         record = folder / "analysis.json"
-        if record.exists() and "final_generated_scores" in json.loads(
-                record.read_text(encoding="utf-8")):
-            summary = json.loads(record.read_text(encoding="utf-8"))
+        cached = (json.loads(record.read_text(encoding="utf-8"))
+                  if record.exists() else None)
+        if cached is not None and analysis_is_current(cached):
+            summary = cached
             summary["run"] = str(folder.relative_to(common.ROOT))
             # Read the quality record fresh: it is the source of truth, and the
             # cached copy inside an older analysis may predate added fields.
@@ -416,6 +443,8 @@ def summarise_condition(condition, opts, dev):
 
     output = pipeline.EXPERIMENTS / condition
     comparison = {
+        "analysis_version": ANALYSIS_VERSION,
+        "previous_token_metric_definition": PREVIOUS_TOKEN_METRIC_DEFINITION,
         "condition": condition,
         "label_generation": label_rule,
         "question": ("Does query-label performance, generated-symbol behaviour or the "
@@ -675,10 +704,19 @@ def main():
         for name in conditions:
             table = pipeline.EXPERIMENTS / name / "generation_comparison.json"
             if table.exists():
-                comparisons.append(json.loads(table.read_text(encoding="utf-8")))
+                comparison = json.loads(table.read_text(encoding="utf-8"))
+                if (comparison.get("analysis_version") != ANALYSIS_VERSION
+                        or comparison.get("previous_token_metric_definition")
+                        != PREVIOUS_TOKEN_METRIC_DEFINITION):
+                    raise SystemExit("{} uses an older analysis definition; rerun "
+                                     "--condition {} before comparing this family."
+                                     .format(table.relative_to(common.ROOT), name))
+                comparisons.append(comparison)
         if len(comparisons) < 2:
             raise SystemExit("Need the reference plus at least one analysed condition.")
         (pipeline.RECURSIVE / (stem + ".json")).write_bytes(json.dumps({
+            "analysis_version": ANALYSIS_VERSION,
+            "previous_token_metric_definition": PREVIOUS_TOKEN_METRIC_DEFINITION,
             "question": ("How does the synthetic-label generation strategy affect "
                          "performance degradation and induction-circuit function "
                          "across recursive generations?"),

@@ -464,6 +464,23 @@ def condition_name(label_strategy, label_temperature, symbol_temperature=1.0,
     return "label_sampling_temperature_{:g}".format(label_temperature)
 
 
+def validate_condition(label_strategy, symbol_temperature=1.0,
+                       context_temperature=None):
+    """Reject commands that combine more than one experiment family."""
+    active = []
+    if label_strategy == "sample":
+        active.append("label sampling")
+    if symbol_temperature != 1.0:
+        active.append("next-symbol temperature")
+    if context_temperature is not None:
+        active.append("context feedback")
+    if len(active) > 1:
+        raise ValueError("incompatible experiment families in one command: {}. "
+                         "Change only one of label sampling, next-symbol temperature, "
+                         "or context feedback from the reference condition."
+                         .format(", ".join(active)))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -480,6 +497,11 @@ def main():
                              "the parent's own generated symbol frequencies, raised to "
                              "the power 1/T. Accepts '1/3'.")
     args = parser.parse_args()
+    try:
+        validate_condition(args.label_strategy, args.next_symbol_temperature,
+                           args.context_temperature)
+    except ValueError as error:
+        parser.error(str(error))
     common.use_above_normal_priority()
 
     # The authors' published settings, at the learning rate the extended-task
