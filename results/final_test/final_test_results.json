@@ -1,0 +1,512 @@
+{
+  "result_kind": "reserved_final_test",
+  "reserved_final_test": true,
+  "evaluation_file": "results\\evaluation_data\\eval_final_test.h5",
+  "evaluator_name": "fsl_final_test_class",
+  "checkpoint_rule": "final saved checkpoint, required to equal configured train_iters",
+  "scoring": {
+    "base": "existing query accuracy and cross-entropy loss definitions",
+    "extended": "existing teacher-forced query-label, symbol-choice and following-label definitions; symbol choices use the fixed development-evaluation seed"
+  },
+  "frozen_extended_conditions": {
+    "label_argmax": 4,
+    "label_sampling_temperature_3": 4,
+    "label_sampling_temperature_5": 4,
+    "context_feedback_temperature_one_third": 6,
+    "symbol_sampling_temperature_0.2": 6
+  },
+  "models": [
+    {
+      "task": "base",
+      "condition": "base_recursive",
+      "generation": 0,
+      "run": "results\\base_task\\recursive\\generation_0",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\base_task\\recursive\\generation_0\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "query_accuracy": 0.9970000386238098,
+        "query_loss": 0.014701365493237972
+      }
+    },
+    {
+      "task": "base",
+      "condition": "base_recursive",
+      "generation": 1,
+      "run": "results\\base_task\\recursive\\generation_1",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\base_task\\recursive\\generation_1\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "query_accuracy": 0.9970000386238098,
+        "query_loss": 0.014701365493237972
+      }
+    },
+    {
+      "task": "base",
+      "condition": "base_recursive",
+      "generation": 2,
+      "run": "results\\base_task\\recursive\\generation_2",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\base_task\\recursive\\generation_2\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "query_accuracy": 0.9970000386238098,
+        "query_loss": 0.014701365493237972
+      }
+    },
+    {
+      "task": "base",
+      "condition": "base_recursive",
+      "generation": 3,
+      "run": "results\\base_task\\recursive\\generation_3",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\base_task\\recursive\\generation_3\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "query_accuracy": 0.9970000386238098,
+        "query_loss": 0.014701365493237972
+      }
+    },
+    {
+      "task": "base",
+      "condition": "base_recursive",
+      "generation": 4,
+      "run": "results\\base_task\\recursive\\generation_4",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\base_task\\recursive\\generation_4\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "query_accuracy": 0.9970000386238098,
+        "query_loss": 0.014701365493237972
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "shared_generation_0",
+      "generation": 0,
+      "run": "results\\extended_task\\recursive\\generation_0",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\generation_0\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9940000176429749,
+        "next_label_loss": 0.02085629664361477,
+        "query_label_accuracy": 0.9960000514984131,
+        "query_label_loss": 0.01645665429532528,
+        "symbol_loss": 0.6950381994247437,
+        "symbol_matches_target": 0.4960000216960907,
+        "symbol_prefers_first": 0.09300000220537186
+      },
+      "shared_by_conditions": [
+        "label_argmax",
+        "label_sampling_temperature_3",
+        "label_sampling_temperature_5",
+        "context_feedback_temperature_one_third",
+        "symbol_sampling_temperature_0.2"
+      ]
+    },
+    {
+      "task": "extended",
+      "condition": "label_argmax",
+      "generation": 1,
+      "run": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_1",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_1\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9960000514984131,
+        "next_label_loss": 0.011907869949936867,
+        "query_label_accuracy": 0.9930000305175781,
+        "query_label_loss": 0.022526714950799942,
+        "symbol_loss": 0.6924563646316528,
+        "symbol_matches_target": 0.5020000338554382,
+        "symbol_prefers_first": 0.28300002217292786
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_argmax",
+      "generation": 2,
+      "run": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_2",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_2\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9970000386238098,
+        "next_label_loss": 0.011640683747828007,
+        "query_label_accuracy": 0.9940000176429749,
+        "query_label_loss": 0.02069244161248207,
+        "symbol_loss": 0.693571150302887,
+        "symbol_matches_target": 0.47300001978874207,
+        "symbol_prefers_first": 0.2200000137090683
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_argmax",
+      "generation": 3,
+      "run": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_3",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_3\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9980000257492065,
+        "next_label_loss": 0.012719975784420967,
+        "query_label_accuracy": 0.9960000514984131,
+        "query_label_loss": 0.018816467374563217,
+        "symbol_loss": 0.6938197016716003,
+        "symbol_matches_target": 0.484000027179718,
+        "symbol_prefers_first": 0.6150000095367432
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_argmax",
+      "generation": 4,
+      "run": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_4",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_argmax\\generation_4\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9970000386238098,
+        "next_label_loss": 0.006622801069170237,
+        "query_label_accuracy": 0.9960000514984131,
+        "query_label_loss": 0.019154218956828117,
+        "symbol_loss": 0.6944155693054199,
+        "symbol_matches_target": 0.4740000367164612,
+        "symbol_prefers_first": 0.675000011920929
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_3",
+      "generation": 1,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_1",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_1\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9950000643730164,
+        "next_label_loss": 0.07044853270053864,
+        "query_label_accuracy": 0.9890000224113464,
+        "query_label_loss": 0.07896950095891953,
+        "symbol_loss": 0.6976527571678162,
+        "symbol_matches_target": 0.4790000319480896,
+        "symbol_prefers_first": 0.2639999985694885
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_3",
+      "generation": 2,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_2",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_2\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.968000054359436,
+        "next_label_loss": 0.7268170714378357,
+        "query_label_accuracy": 0.9800000190734863,
+        "query_label_loss": 0.6969062089920044,
+        "symbol_loss": 0.6953999400138855,
+        "symbol_matches_target": 0.49500003457069397,
+        "symbol_prefers_first": 0.1860000044107437
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_3",
+      "generation": 3,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_3",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_3\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.4910000264644623,
+        "next_label_loss": 1.4560331106185913,
+        "query_label_accuracy": 0.5230000019073486,
+        "query_label_loss": 1.4465469121932983,
+        "symbol_loss": 0.6955002546310425,
+        "symbol_matches_target": 0.49400001764297485,
+        "symbol_prefers_first": 0.19100001454353333
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_3",
+      "generation": 4,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_4",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_3\\generation_4\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.4620000123977661,
+        "next_label_loss": 1.5564988851547241,
+        "query_label_accuracy": 0.4970000088214874,
+        "query_label_loss": 1.5520368814468384,
+        "symbol_loss": 0.6947688460350037,
+        "symbol_matches_target": 0.5010000467300415,
+        "symbol_prefers_first": 0.20400001108646393
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_5",
+      "generation": 1,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_1",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_1\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9910000562667847,
+        "next_label_loss": 0.27557307481765747,
+        "query_label_accuracy": 0.9940000176429749,
+        "query_label_loss": 0.26680636405944824,
+        "symbol_loss": 0.6946105360984802,
+        "symbol_matches_target": 0.5020000338554382,
+        "symbol_prefers_first": 0.2750000059604645
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_5",
+      "generation": 2,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_2",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_2\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.4970000088214874,
+        "next_label_loss": 1.438930869102478,
+        "query_label_accuracy": 0.5130000114440918,
+        "query_label_loss": 1.4350656270980835,
+        "symbol_loss": 0.693497896194458,
+        "symbol_matches_target": 0.5,
+        "symbol_prefers_first": 0.3410000205039978
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_5",
+      "generation": 3,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_3",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_3\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.42500001192092896,
+        "next_label_loss": 1.5780845880508423,
+        "query_label_accuracy": 0.45100003480911255,
+        "query_label_loss": 1.5768792629241943,
+        "symbol_loss": 0.6941140294075012,
+        "symbol_matches_target": 0.484000027179718,
+        "symbol_prefers_first": 0.5830000042915344
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "label_sampling_temperature_5",
+      "generation": 4,
+      "run": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_4",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\label_sampling_temperature_5\\generation_4\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.20800000429153442,
+        "next_label_loss": 1.6065354347229004,
+        "query_label_accuracy": 0.2240000069141388,
+        "query_label_loss": 1.6046411991119385,
+        "symbol_loss": 0.6945504546165466,
+        "symbol_matches_target": 0.4970000088214874,
+        "symbol_prefers_first": 0.527999997138977
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "context_feedback_temperature_one_third",
+      "generation": 1,
+      "run": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_1",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_1\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9980000257492065,
+        "next_label_loss": 0.004485415294766426,
+        "query_label_accuracy": 0.9980000257492065,
+        "query_label_loss": 0.0064785717986524105,
+        "symbol_loss": 0.6946731209754944,
+        "symbol_matches_target": 0.4960000216960907,
+        "symbol_prefers_first": 0.25300002098083496
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "context_feedback_temperature_one_third",
+      "generation": 2,
+      "run": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_2",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_2\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9980000257492065,
+        "next_label_loss": 0.007722304668277502,
+        "query_label_accuracy": 0.9980000257492065,
+        "query_label_loss": 0.0027052322402596474,
+        "symbol_loss": 0.693626880645752,
+        "symbol_matches_target": 0.4930000305175781,
+        "symbol_prefers_first": 0.4360000193119049
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "context_feedback_temperature_one_third",
+      "generation": 3,
+      "run": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_3",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_3\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9930000305175781,
+        "next_label_loss": 0.037171222269535065,
+        "query_label_accuracy": 0.9930000305175781,
+        "query_label_loss": 0.028083859011530876,
+        "symbol_loss": 0.6942728757858276,
+        "symbol_matches_target": 0.4870000183582306,
+        "symbol_prefers_first": 0.48600003123283386
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "context_feedback_temperature_one_third",
+      "generation": 4,
+      "run": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_4",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_4\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9920000433921814,
+        "next_label_loss": 0.02748429775238037,
+        "query_label_accuracy": 0.9930000305175781,
+        "query_label_loss": 0.020935315638780594,
+        "symbol_loss": 0.6943513751029968,
+        "symbol_matches_target": 0.4870000183582306,
+        "symbol_prefers_first": 0.45000001788139343
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "context_feedback_temperature_one_third",
+      "generation": 5,
+      "run": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_5",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_5\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9740000367164612,
+        "next_label_loss": 0.1799674779176712,
+        "query_label_accuracy": 0.9750000238418579,
+        "query_label_loss": 0.10279928892850876,
+        "symbol_loss": 0.6935953497886658,
+        "symbol_matches_target": 0.4910000264644623,
+        "symbol_prefers_first": 0.7740000486373901
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "context_feedback_temperature_one_third",
+      "generation": 6,
+      "run": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_6",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\context_feedback_temperature_one_third\\generation_6\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.41100001335144043,
+        "next_label_loss": 2.5442121028900146,
+        "query_label_accuracy": 0.40300002694129944,
+        "query_label_loss": 2.554687023162842,
+        "symbol_loss": 0.6935083270072937,
+        "symbol_matches_target": 0.49900001287460327,
+        "symbol_prefers_first": 0.8660000562667847
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "symbol_sampling_temperature_0.2",
+      "generation": 1,
+      "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_1",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_1\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9950000643730164,
+        "next_label_loss": 0.010563724674284458,
+        "query_label_accuracy": 0.9940000176429749,
+        "query_label_loss": 0.027766957879066467,
+        "symbol_loss": 0.7071866989135742,
+        "symbol_matches_target": 0.5080000162124634,
+        "symbol_prefers_first": 0.1290000081062317
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "symbol_sampling_temperature_0.2",
+      "generation": 2,
+      "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_2",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_2\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9930000305175781,
+        "next_label_loss": 0.035416379570961,
+        "query_label_accuracy": 0.9960000514984131,
+        "query_label_loss": 0.024838408455252647,
+        "symbol_loss": 1.0178964138031006,
+        "symbol_matches_target": 0.5080000162124634,
+        "symbol_prefers_first": 0.10500000417232513
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "symbol_sampling_temperature_0.2",
+      "generation": 3,
+      "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_3",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_3\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9770000576972961,
+        "next_label_loss": 0.13190920650959015,
+        "query_label_accuracy": 0.9900000691413879,
+        "query_label_loss": 0.04005812481045723,
+        "symbol_loss": 2.9380929470062256,
+        "symbol_matches_target": 0.5020000338554382,
+        "symbol_prefers_first": 0.11700000613927841
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "symbol_sampling_temperature_0.2",
+      "generation": 4,
+      "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_4",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_4\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.8990000486373901,
+        "next_label_loss": 0.6670776605606079,
+        "query_label_accuracy": 0.987000048160553,
+        "query_label_loss": 0.07577739655971527,
+        "symbol_loss": 4.515441417694092,
+        "symbol_matches_target": 0.5060000419616699,
+        "symbol_prefers_first": 0.10700000822544098
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "symbol_sampling_temperature_0.2",
+      "generation": 5,
+      "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_5",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_5\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.9430000185966492,
+        "next_label_loss": 0.3988085687160492,
+        "query_label_accuracy": 0.9790000319480896,
+        "query_label_loss": 0.13232895731925964,
+        "symbol_loss": 5.448123455047607,
+        "symbol_matches_target": 0.5090000033378601,
+        "symbol_prefers_first": 0.11000000685453415
+      }
+    },
+    {
+      "task": "extended",
+      "condition": "symbol_sampling_temperature_0.2",
+      "generation": 6,
+      "run": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_6",
+      "checkpoint_iteration": 1000000,
+      "checkpoint": "results\\extended_task\\recursive\\experiments\\symbol_sampling_temperature_0.2\\generation_6\\checkpoints\\00001000000.eqx",
+      "metrics": {
+        "next_label_accuracy": 0.937000036239624,
+        "next_label_loss": 0.336181104183197,
+        "query_label_accuracy": 0.9910000562667847,
+        "query_label_loss": 0.07754393666982651,
+        "symbol_loss": 5.836953639984131,
+        "symbol_matches_target": 0.5010000467300415,
+        "symbol_prefers_first": 0.1080000028014183
+      }
+    }
+  ]
+}

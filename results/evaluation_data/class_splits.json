@@ -320,7 +320,7 @@
   "final_test_evaluator": {
     "name": "fsl_final_test_class",
     "file": "results\\evaluation_data\\eval_final_test.h5",
-    "built": false,
-    "status": "RESERVED - regenerate deterministically with --build-final-test when the project is ready; no model has been scored on it"
+    "built": true,
+    "status": "RESERVED - built deterministically; scoring status is recorded by the separate final-test results file"
   }
 }
