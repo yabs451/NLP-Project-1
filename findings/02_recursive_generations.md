@@ -25,7 +25,8 @@ query's answer. No true targets are mixed in.
 
 All five are scored on the same fixed 1,000-question development evaluator,
 built from 100 classes no training run ever sees. All five save 55 checkpoints.
-The reserved final-test classes were never generated or scored.
+At this stage the reserved final-test classes had not been generated or scored.
+They were later scored once, after the report conditions were frozen.
 
 ## Results
 
@@ -170,7 +171,8 @@ important for the measured behaviour.
   measured on one evaluator.
 - **Within-training ordering is unresolved** at the 13 analysed checkpoints,
   where the transition falls in a 40,000-sequence gap.
-- The reserved final-test classes have never been scored.
+- The reserved final-test classes were not used during this analysis or model
+  selection; they were scored once only after the report conditions were frozen.
 
 **What followed.** This finding recorded, at the time, that the natural next step
 was an extended task in which the model also predicts a following symbol and its

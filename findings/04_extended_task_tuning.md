@@ -52,8 +52,9 @@ A rate needs all three seeds completed to be eligible. Symbol loss and
 following-label accuracy were recorded for interpretation but play **no part** in
 the selection.
 
-Scored on the unchanged fixed 1,000-question development evaluator. The reserved
-final-test classes were not generated and not scored.
+Scored on the unchanged fixed 1,000-question development evaluator. At this
+tuning stage the reserved final-test classes had not been generated or scored;
+they were later scored once after the report conditions were frozen.
 
 ## Results
 
@@ -152,7 +153,8 @@ the other.
   learning curves are available. What tuning candidates lack is intermediate
   *weights*: they keep only the initialisation and final checkpoints, which
   limits retrospective mechanistic analysis, not analysis of the logged metrics.
-- The reserved final-test classes have never been scored.
+- The reserved final-test classes were not used for tuning; they were scored once
+  only after the report conditions were frozen.
 
 ## Reproduce
 

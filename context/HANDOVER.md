@@ -129,7 +129,7 @@ training.
 | Development evaluator | a fixed **1,000-question** set from 100 held-out classes, never changed between conditions |
 | Accuracy/loss logging | every 5,000 sequences → **201 points** per run, in `log.h5` |
 | Attention and ablation analysis | Attention and performance are measured at **12 of the 55 checkpoints** in each extended run; the base task reports **13**. Single-head ablations are performed only at the final checkpoint of each model, not across the analysed checkpoints |
-| Final test | **100 reserved classes, never generated and never scored.** Outstanding by design: it should be run once the experimental choices are settled, so the held-out number is reported against a final configuration rather than a moving one |
+| Final test | **100 reserved classes, generated and scored once after the experimental choices were frozen.** Results are in `results/final_test/final_test_results.json` and summarised in `PHASE5_FINAL_TEST.md`; they were not used for selection or tuning |
 
 ### The two learning-rate searches
 
@@ -454,11 +454,11 @@ not reproduce. `results/` is part of the handover, not an optional extra.
 **Complete**: both tuning searches; the base chain (0–4); nine extended
 conditions; all analyses and figures; findings 01, 02, 04, 05, 06.
 
-**Outstanding by design**: the **reserved 100 final-test classes have never been
-generated or scored**. The intention has always been to run this *after* the
-experimental choices are finalised, so that the held-out number describes a
-settled configuration. It is the obvious next deliverable once the project stops
-adding conditions.
+**Final test complete**: the reserved 100-class evaluator was generated and the
+frozen report chains were scored once after the experimental choices were
+finalised. The machine-readable record is
+`results/final_test/final_test_results.json`; `PHASE5_FINAL_TEST.md` gives the
+short outcome. No selection, retraining, tuning or metric changes followed it.
 
 **Genuinely unresolved**, recorded rather than explained:
 
@@ -485,7 +485,7 @@ models on the distribution they were trained on.
 whether the collapse generation is stable. Score a context-feedback child on its
 own training distribution to separate distribution shift from capability loss.
 Ablate heads in combination rather than singly. Analyse more of the 55 checkpoints
-around a transition. Score the reserved final test once the project is ready.
+around a transition.
 
 ---
 

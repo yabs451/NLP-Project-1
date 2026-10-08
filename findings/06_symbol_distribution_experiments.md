@@ -344,8 +344,9 @@ one seed, one budget, and the fall appears at a single generation in each chain.
   effect ranges from under 1 to 41 percentage points; why the temperature-0.2
   context chain partially recovers at generation 5; why the symbol-temperature
   chains reach 90% query accuracy earlier each generation.
-- All results are on a 1,000-question sample from 100 held-out classes. The
-  reserved final-test classes have never been scored.
+- Development results are on a 1,000-question sample from 100 held-out classes.
+  The disjoint reserved final test was scored once only after the report
+  conditions were frozen.
 
 ## Reproduce
 

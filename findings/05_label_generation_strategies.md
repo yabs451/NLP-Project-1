@@ -80,8 +80,9 @@ the same procedure. Two different sampling densities matter throughout:
 Single-head ablations were performed only on each model's final checkpoint.
 
 Statements about attention are therefore limited to those 12 points; we never
-observed the 43 checkpoints in between. The reserved final-test classes were not
-generated or scored.
+observed the 43 checkpoints in between. At this analysis stage the reserved
+final-test classes had not been generated or scored; they were later scored once
+after the report conditions were frozen.
 
 ## Results
 
@@ -516,7 +517,8 @@ moved only in the fifth decimal place.
   sits at the top of that range. The earlier 1e-05 experiment, retired from the
   maintained project, measured much larger induction-head ablation effects, so
   the effect sizes here should not be read as properties of the architecture.
-- The reserved final-test classes have never been scored.
+- The reserved final-test classes were not used for this analysis or model
+  selection; they were scored once only after the report conditions were frozen.
 
 ## Reproduce
 

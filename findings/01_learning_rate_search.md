@@ -90,7 +90,9 @@ to 0.0009 at 1e-3. What does hold across the table is that the gap between each
 adjacent pair of rates is larger than the spread across the three seeds at
 either of them.
 
-The reserved final-test classes were not generated and not scored.
+At this tuning stage the reserved final-test classes had not been generated or
+scored. They were later scored once, after the report conditions were frozen;
+the result was not used in this selection.
 
 ## Interpretation
 

@@ -136,7 +136,7 @@ NLP-Project-1/
 │       ├── run_extended.py          trains one extended chain per condition
 │       └── analyse_extended.py      per-generation analysis and the comparisons
 ├── findings/                 the scientific write-ups
-├── results/                  everything the scripts generate (not distributed)
+├── results/                  saved experiment outputs and final-test results
 └── upstream/icl-dynamics/    the authors' code, unmodified
 ```
 
@@ -186,8 +186,10 @@ a final test.
 
 This writes `results/evaluation_data/class_splits.json` (the exact class IDs,
 selection rule and seeds) and `results/evaluation_data/eval_dev.h5` — the fixed
-**1,000-question development evaluator**, the single evaluator used everywhere
-in this project. **The reserved final test has never been generated or scored.**
+**1,000-question development evaluator**, the single evaluator used during
+development. After the experiment selection was frozen, the reserved evaluator
+was built and scored once; see `PHASE5_FINAL_TEST.md` and
+`results/final_test/final_test_results.json`.
 
 ### 2. Reproduce the learning-rate search
 
@@ -399,8 +401,9 @@ explicitly named diagnostic, and will not reuse an unversioned old cache.
 
 ## What gets generated
 
-`results/` is produced by the commands above and is not distributed with the
-repository — regenerate it by following the steps in order.
+`results/` contains the saved outputs used by the findings and final validation.
+The commands above document how those outputs were produced; rerunning them is
+not required to inspect the submitted evidence.
 
 | Path | Contents |
 | --- | --- |
@@ -409,7 +412,7 @@ repository — regenerate it by following the steps in order.
 | `results/base_task/recursive/generation_<n>/` | one folder per generation |
 | `results/base_task/recursive/generation_comparison.json` / `.png` | the across-generation comparison |
 | `results/extended_task/tuning/` | one folder per tuning candidate, the shared original-task training set, plus `results.json` (all 18 candidates), `selection.json` and `learning_rate_comparison.png` |
-| `results/extended_task/recursive/generation_0/` | the generation 0 shared by all four conditions |
+| `results/extended_task/recursive/generation_0/` | the generation 0 shared by all extended conditions |
 | `results/extended_task/recursive/experiments/<condition>/generation_<n>/` | one folder per generation, per condition |
 | `results/extended_task/recursive/experiments/<condition>/generation_comparison.json` / `.png` | that condition's chain |
 | `results/extended_task/recursive/experiments/<condition>/dataset_distributions.json` | what that condition's parents actually generated, counted from the saved datasets: symbol offers, choices and selection rates per class, and for each label output the generated and true label histograms with a correct-versus-generated table |
@@ -491,7 +494,8 @@ which is written at every evaluation point regardless.
   read at that scope.
 - **Both learning-rate searches stop at the edge.** 1e-3 was best of six rates at
   31,250 updates in each search, and sits at the top of both tested ranges.
-- The reserved 100 final-test classes have never been scored.
+- The reserved 100-class final test was scored once, after the reported
+  conditions were frozen. It was not used for model selection or tuning.
 
 ## Attribution
 
